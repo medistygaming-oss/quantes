@@ -76,6 +76,10 @@ const isStaff = (id) => isOwner(id) || STAFF_IDS.has(id);
 const NAVY = 0x0b1a3a;
 const CFX_CODE = (process.env.CFX_CODE || "xjx5kr").trim(); // https://servers-frontend.fivem.net/api/servers/single/xjx5kr
 
+// ===================== GÖRSEL SABİTLERİ =====================
+const THUMBNAIL_URL = "https://media.discordapp.net/attachments/1520142839244128413/1520151994071908463/content.png?ex=6a611cde&is=6a5fcb5e&hm=4e11c65e59def5102d474c484479e72e2c5c547dc23e81cef705adc9d1b2c34f&=&format=webp&quality=lossless&width=960&height=960";
+const BANNER_URL = "https://media.discordapp.net/attachments/1520142839244128413/1520152417642217564/content.png?ex=6a607483&is=6a5f2303&hm=2fe3e57676d5e233bb8c497f7af4b39c91f6242a3bdd4962984de56042dbc24c&=&format=webp&quality=lossless&width=1872&height=749";
+
 // ===================== EMOJİLER (SENİN ÖZEL SET) =====================
 const EMOJI = {
   settings: "<a:settings:1520165591267414016>",
@@ -109,11 +113,15 @@ const line = (emoji, text) => `${emoji} ・ ${text}`;
 
 // ===================== EMBED HELPER =====================
 function createEmbed(guild, { title, description, fields, image }) {
-  const e = new EmbedBuilder().setColor(NAVY).setTimestamp();
+  const e = new EmbedBuilder()
+    .setColor(NAVY)
+    .setTimestamp()
+    .setThumbnail(THUMBNAIL_URL)
+    .setImage(image !== undefined ? image : BANNER_URL);
+    
   if (title) e.setTitle(title);
   if (description) e.setDescription(description);
   if (fields?.length) e.addFields(fields);
-  if (image) e.setImage(image);
   return e;
 }
 async function replyE(interaction, embed, ephemeral = false) {
