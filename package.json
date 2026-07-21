@@ -1,0 +1,19 @@
+{
+  "name": "teamcruz-ingame-bot",
+  "version": "1.0.0",
+  "description": "TeamCruz Ingame Sistemi - Discord Bot (Slash Command)",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "express": "^4.19.2"
+  },
+  "author": "",
+  "license": "ISC"
+}
