@@ -1,7 +1,9 @@
-// ===================== INGAME SYSTEM (SLASH ONLY) =====================
-// discord.js v14 | Slash Commands: /ingame-olustur , /ingame-iptal
+// ===================== INGAME + SES YASAK SYSTEM (SLASH ONLY) =====================
+// discord.js v14 | Slash Commands: /ingame-olustur , /ingame-iptal , /ses-yasak
 // Butonlar: Katıl, Ayrıl, Bilgi, İptal Et, Kontrol (FiveM discord id sorgusu)
 // Limit dolunca sonraki katılanlar "Yedek" listesine yazılır
+// Ses Yasak: etiketlenen kanala önceden bulunanlar dışında giriş yasak,
+// giren anında disconnect, aynı kişi 3. kez denerse 60sn timeout
 // ========================================================================
 
 process.on("unhandledRejection", (r) => console.error("UNHANDLED_REJECTION:", r));
@@ -16,6 +18,7 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ChannelType,
   SlashCommandBuilder,
   Routes,
   REST
@@ -65,20 +68,14 @@ const STAFF_IDS = new Set(
 );
 if (STAFF_IDS.size === 0) {
   [
-    "1129811807570247761",
-    "1395918752159236321",
-    "689416586905649189",
-    "1073527389545570315"
+    "1129811807570247761"
+
   ].forEach((id) => STAFF_IDS.add(id));
 }
 const isStaff = (id) => isOwner(id) || STAFF_IDS.has(id);
 
 const NAVY = 0x0b1a3a;
 const CFX_CODE = (process.env.CFX_CODE || "xjx5kr").trim(); // https://servers-frontend.fivem.net/api/servers/single/xjx5kr
-
-// ===================== GÖRSEL SABİTLERİ =====================
-const THUMBNAIL_URL = "https://media.discordapp.net/attachments/1520142839244128413/1520151994071908463/content.png?ex=6a611cde&is=6a5fcb5e&hm=4e11c65e59def5102d474c484479e72e2c5c547dc23e81cef705adc9d1b2c34f&=&format=webp&quality=lossless&width=960&height=960";
-const BANNER_URL = "https://media.discordapp.net/attachments/1520142839244128413/1520152417642217564/content.png?ex=6a607483&is=6a5f2303&hm=2fe3e57676d5e233bb8c497f7af4b39c91f6242a3bdd4962984de56042dbc24c&=&format=webp&quality=lossless&width=1872&height=749";
 
 // ===================== EMOJİLER (SENİN ÖZEL SET) =====================
 const EMOJI = {
@@ -113,15 +110,11 @@ const line = (emoji, text) => `${emoji} ・ ${text}`;
 
 // ===================== EMBED HELPER =====================
 function createEmbed(guild, { title, description, fields, image }) {
-  const e = new EmbedBuilder()
-    .setColor(NAVY)
-    .setTimestamp()
-    .setThumbnail(THUMBNAIL_URL)
-    .setImage(image !== undefined ? image : BANNER_URL);
-    
+  const e = new EmbedBuilder().setColor(NAVY).setTimestamp();
   if (title) e.setTitle(title);
   if (description) e.setDescription(description);
   if (fields?.length) e.addFields(fields);
+  if (image) e.setImage(image);
   return e;
 }
 async function replyE(interaction, embed, ephemeral = false) {
@@ -207,11 +200,17 @@ function buildDiscordIdIndex(json) {
   return map;
 }
 
-// ===================== STATE =====================
+// ===================== STATE: INGAME =====================
 // messageId -> { title, limit, users: [], yedek: [], durationMs, endsAt, timer, closed, channelId, guildId }
 const ingameList = new Map();
 
-// ===================== UI HELPERS =====================
+// ===================== STATE: SES YASAK =====================
+// channelId -> { allowedIds: Set<userId>, guildId }
+const voiceLocks = new Map();
+// `${channelId}:${userId}` -> attempt count (kilitli kanala izinsiz giriş denemesi)
+const lockAttempts = new Map();
+
+// ===================== UI HELPERS: INGAME =====================
 function ingameRows(closed) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -308,7 +307,11 @@ async function closeIngame(guild, msgId, reason) {
 
 // ===================== CLIENT =====================
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildVoiceStates
+  ],
   partials: [Partials.Message, Partials.Channel]
 });
 
@@ -334,6 +337,16 @@ const commands = [
         .setName("mesaj_id")
         .setDescription("İptal edilecek panelin mesaj ID'si (boş bırakılırsa bu kanaldaki en son panel)")
         .setRequired(false)
+    ),
+  new SlashCommandBuilder()
+    .setName("ses-yasak")
+    .setDescription("Etiketlenen ses kanalını kilitler (tekrar çalıştırınca kilit kalkar).")
+    .addChannelOption((opt) =>
+      opt
+        .setName("kanal")
+        .setDescription("Kilitlenecek/kilidi açılacak ses kanalı")
+        .addChannelTypes(ChannelType.GuildVoice)
+        .setRequired(true)
     )
 ].map((c) => c.toJSON());
 
@@ -354,6 +367,66 @@ async function registerCommands() {
 client.once("ready", async () => {
   console.log(`🟢 Bot aktif: ${client.user.tag}`);
   await registerCommands();
+});
+
+// ===================== VOICE STATE UPDATE: SES YASAK KONTROLÜ =====================
+client.on("voiceStateUpdate", async (oldState, newState) => {
+  try {
+    const member = newState.member;
+    if (!member) return;
+
+    // Yeni bir kanala giriş yaptıysa kontrol et (kanal değişimi de dahil)
+    const joinedChannelId = newState.channelId;
+    if (!joinedChannelId) return;
+    if (oldState.channelId === joinedChannelId) return; // aynı kanaldaysa (mute/deaf vs.) dokunma
+
+    const lock = voiceLocks.get(joinedChannelId);
+    if (!lock) return;
+
+    // Owner / staff kilide takılmaz
+    if (isOwner(member.id) || isStaff(member.id)) return;
+
+    // Kilitlenme anında bu kanalda zaten olan kişi serbest
+    if (lock.allowedIds.has(member.id)) return;
+
+    // İzinsiz giriş -> anında at
+    await member.voice.disconnect("Ses Yasak: Bu kanala giriş izniniz yok").catch(() => {});
+
+    const attemptKey = `${joinedChannelId}:${member.id}`;
+    const attempts = (lockAttempts.get(attemptKey) || 0) + 1;
+    lockAttempts.set(attemptKey, attempts);
+
+    const guild = newState.guild;
+    const channel = guild.channels.cache.get(joinedChannelId);
+
+    if (attempts >= 3) {
+      // 3. denemede 60 saniye timeout
+      await member.timeout(60 * 1000, "Ses Yasak: Kilitli kanala 3 kez giriş denemesi").catch(() => {});
+      lockAttempts.delete(attemptKey);
+
+      if (channel) {
+        channel.send({
+          embeds: [createEmbed(guild, {
+            title: line(EMOJI.lock, "ꜱᴇꜱ ʏᴀꜱᴀᴋ • ᴛɪᴍᴇᴏᴜᴛ"),
+            description:
+              `${line(EMOJI.warn, `${member} kilitli kanala **3. kez** girmeye çalıştı.`)}\n` +
+              `${line(EMOJI.right, "60 saniye timeout uygulandı.")}`
+          })]
+        }).catch(() => {});
+      }
+    } else if (channel) {
+      channel.send({
+        embeds: [createEmbed(guild, {
+          title: line(EMOJI.warn, "ꜱᴇꜱ ʏᴀꜱᴀᴋ"),
+          description:
+            `${line(EMOJI.warn, `${member} bu kanala giriş izni olmadığı için atıldı.`)}\n` +
+            `${line(EMOJI.info, `Deneme: **${attempts}/3**`)}`
+        })]
+      }).catch(() => {});
+    }
+  } catch (err) {
+    console.error("SES YASAK HATA:", err);
+  }
 });
 
 // ===================== INTERACTIONS =====================
@@ -450,7 +523,6 @@ client.on("interactionCreate", async (i) => {
       let targetMsgId = i.options.getString("mesaj_id");
 
       if (!targetMsgId) {
-        // Bu kanaldaki en son açık paneli bul
         const candidates = Array.from(ingameList.entries())
           .filter(([, d]) => d.channelId === i.channel.id && !d.closed);
         if (!candidates.length) {
@@ -492,6 +564,58 @@ client.on("interactionCreate", async (i) => {
       });
     }
 
+    // ===================== SLASH: /ses-yasak =====================
+    if (i.isChatInputCommand() && i.commandName === "ses-yasak") {
+      if (!isStaff(i.user.id)) {
+        return replyE(i, createEmbed(guild, {
+          title: line(EMOJI.lock, "ʏᴇᴛᴋɪ ʏᴏᴋ"),
+          description: line(EMOJI.warn, "Sadece yetkililer.")
+        }), true);
+      }
+
+      const channel = i.options.getChannel("kanal", true);
+
+      if (channel.type !== ChannelType.GuildVoice) {
+        return replyE(i, createEmbed(guild, {
+          title: line(EMOJI.warn, "ʜᴀᴛᴀ"),
+          description: line(EMOJI.info, "Lütfen bir ses kanalı etiketle.")
+        }), true);
+      }
+
+      await i.deferReply({ flags: 64 });
+
+      // Zaten kilitliyse -> kilidi kaldır (toggle)
+      if (voiceLocks.has(channel.id)) {
+        voiceLocks.delete(channel.id);
+        // O kanala ait deneme sayaçlarını temizle
+        for (const key of Array.from(lockAttempts.keys())) {
+          if (key.startsWith(`${channel.id}:`)) lockAttempts.delete(key);
+        }
+
+        return i.editReply({
+          embeds: [createEmbed(guild, {
+            title: line(EMOJI.success, "ᴋɪʟɪᴛ ᴋᴀʟᴅɪʀɪʟᴅɪ"),
+            description: line(EMOJI.right, `${channel} artık serbest, herkes girebilir.`)
+          })]
+        });
+      }
+
+      // Kilitle: şu an kanalda olanları "izinli" say
+      const allowedIds = new Set(channel.members.map((m) => m.id));
+      voiceLocks.set(channel.id, { allowedIds, guildId: guild.id });
+
+      return i.editReply({
+        embeds: [createEmbed(guild, {
+          title: line(EMOJI.lock, "ᴋᴀɴᴀʟ ᴋɪʟɪᴛʟᴇɴᴅɪ"),
+          description:
+            `${line(EMOJI.warn, `${channel} kilitlendi.`)}\n` +
+            `${line(EMOJI.info, `Şu an kanalda olan **${allowedIds.size} kişi** hariç kimse giremez.`)}\n` +
+            `${line(EMOJI.right, "Girmeye çalışan anında atılır, 3. denemede 60 saniye timeout yer.")}\n` +
+            `${line(EMOJI.right, "Kilidi kaldırmak için komutu tekrar aynı kanala çalıştır.")}`
+        })]
+      });
+    }
+
     // ===================== BUTTONS =====================
     if (!i.isButton()) return;
 
@@ -514,7 +638,6 @@ client.on("interactionCreate", async (i) => {
         await refreshIngameMessage(guild, msgId);
         return i.editReply(line(EMOJI.success, `Katıldın! Sıran: **${data.users.length}**`));
       } else {
-        // Ana kadro dolu -> yedek listesine ekle
         data.yedek.push(i.user.id);
         await refreshIngameMessage(guild, msgId);
         return i.editReply(line(EMOJI.info, `Ana kadro dolu, **yedek listesine** eklendin. Yedek sıran: **${data.yedek.length}**`));
@@ -537,7 +660,6 @@ client.on("interactionCreate", async (i) => {
 
       if (inMain) {
         data.users = data.users.filter((id) => id !== i.user.id);
-        // Ana kadroda yer açıldıysa, yedekten ilk kişiyi otomatik yükselt
         if (data.yedek.length > 0 && data.users.length < data.limit) {
           const promoted = data.yedek.shift();
           data.users.push(promoted);
@@ -618,7 +740,10 @@ client.on("interactionCreate", async (i) => {
       const data = ingameList.get(msgId);
       if (!data) return i.editReply(line(EMOJI.warn, "Bu panel artık aktif değil."));
 
-      const allUsers = [...data.users.map((id) => ({ id, tip: "Ana Kadro" })), ...data.yedek.map((id) => ({ id, tip: "Yedek" }))];
+      const allUsers = [
+        ...data.users.map((id) => ({ id, tip: "Ana Kadro" })),
+        ...data.yedek.map((id) => ({ id, tip: "Yedek" }))
+      ];
 
       if (!allUsers.length) {
         return i.editReply(line(EMOJI.warn, "Kontrol edilecek katılımcı yok."));
@@ -641,7 +766,6 @@ client.on("interactionCreate", async (i) => {
         return line(EMOJI.warn, `<@${id}> \`(${tip})\` → **Sunucuda değil**`);
       });
 
-      // Embed description limiti (4096) aşılmasın diye parçalara böl
       const chunks = [];
       let current = "";
       for (const l of lines) {
