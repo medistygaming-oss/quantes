@@ -1,7 +1,7 @@
 {
-  "name": "vazgucxn-bot",
-  "version": "1.0.0",
-  "description": "Vazgucxn Guard & Ticket Discord Bot — discord.js v14",
+  "name": "teamcruz-bot-v2",
+  "version": "2.0.0",
+  "description": "TeamCruz Discord Bot V2 — Slash Komutlar (Prefix Yok)",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -19,13 +19,7 @@
   "devDependencies": {
     "nodemon": "^3.1.4"
   },
-  "keywords": [
-    "discord",
-    "bot",
-    "guard",
-    "ticket",
-    "fivem"
-  ],
+  "keywords": ["discord", "bot", "slash", "fivem", "teamcruz"],
   "author": "Vazgucxn",
   "license": "ISC"
 }
