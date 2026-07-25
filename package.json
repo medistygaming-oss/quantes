@@ -1,19 +1,31 @@
 {
-  "name": "teamcruz-ingame-bot",
+  "name": "vazgucxn-bot",
   "version": "1.0.0",
-  "description": "TeamCruz Ingame Sistemi - Discord Bot (Slash Command)",
+  "description": "Vazgucxn Guard & Ticket Discord Bot — discord.js v14",
   "main": "index.js",
-  "type": "commonjs",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "discord.js": "^14.14.1",
-    "express": "^4.19.2"
+    "@discordjs/voice": "^0.17.0",
+    "discord.js": "^14.15.3",
+    "express": "^4.19.2",
+    "mongodb": "^6.7.0"
   },
-  "author": "",
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "guard",
+    "ticket",
+    "fivem"
+  ],
+  "author": "Vazgucxn",
   "license": "ISC"
 }
