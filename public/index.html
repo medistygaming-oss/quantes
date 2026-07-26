@@ -421,6 +421,8 @@ td strong { color: var(--text); font-weight: 500; }
   border: 1px solid var(--border);
 }
 .btn-secondary:hover { border-color: var(--border-glow); background: var(--card3); }
+.btn-danger { background: rgba(239,68,68,0.2); color: var(--red); border: 1px solid var(--red); }
+.btn-danger:hover { background: var(--red); color: white; }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
 .btn-icon { padding: 8px; border-radius: var(--radius2); }
 
@@ -447,6 +449,21 @@ input, select {
 input:focus, select:focus { border-color: var(--border-glow); }
 .input-wrap input { padding-left: 38px; }
 select option { background: var(--card2); }
+
+/* TOGGLE SWITCH */
+.switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background-color: var(--card3); transition: .3s; border-radius: 99px; border: 1px solid var(--border); }
+.slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--green); }
+input:checked + .slider:before { transform: translateX(18px); }
+
+/* TOAST NOTIFICATIONS */
+#toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; }
+.toast { background: var(--card2); border: 1px solid var(--border-glow); padding: 12px 18px; border-radius: var(--radius2); font-size: 13px; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); animation: toast-in 0.3s ease; }
+.toast-success { border-color: var(--green); }
+.toast-error { border-color: var(--red); }
+@keyframes toast-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
 /* ─── TOOLBAR ─── */
 .toolbar {
@@ -687,7 +704,27 @@ select option { background: var(--card2); }
 <body>
 
 <canvas id="particles-canvas"></canvas>
+<div id="toast-container"></div>
 <div class="mobile-overlay" id="mobile-overlay" onclick="closeMobileSidebar()"></div>
+
+<!-- ONAY MODALI -->
+<div class="modal-backdrop" id="modal-confirm">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="confirm-title">İşlem Onayı</h3>
+      <button class="modal-close" onclick="closeModal('modal-confirm')">✕</button>
+    </div>
+    <div id="confirm-body" style="font-size:13px;color:var(--text2);margin-bottom:12px"></div>
+    <div id="confirm-reason-wrap" style="margin-bottom:12px">
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">SEBEP</label>
+      <input type="text" id="confirm-reason" placeholder="Sebep giriniz..." style="width:100%">
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-confirm')">İptal</button>
+      <button class="btn btn-danger" id="confirm-btn">Onayla</button>
+    </div>
+  </div>
+</div>
 
 <div class="layout">
   <!-- SIDEBAR -->
@@ -714,9 +751,12 @@ select option { background: var(--card2); }
       <div class="nav-item" data-page="tag-query" onclick="navigate('tag-query',this)">
         <span class="nav-icon">🏷️</span><span class="sidebar-label">Tag Sorgu</span>
       </div>
-      <div class="sidebar-section-title">EKİP</div>
+      <div class="sidebar-section-title">DISCORD & EKİP</div>
+      <div class="nav-item" data-page="members" onclick="navigate('members',this)">
+        <span class="nav-icon">👥</span><span class="sidebar-label">Discord Üyeleri</span>
+      </div>
       <div class="nav-item" data-page="team" onclick="navigate('team',this)">
-        <span class="nav-icon">👥</span><span class="sidebar-label">Ekip / Kadro</span>
+        <span class="nav-icon">👑</span><span class="sidebar-label">Ekip / Kadro</span>
       </div>
       <div class="nav-item" data-page="events" onclick="navigate('events',this)">
         <span class="nav-icon">🎯</span><span class="sidebar-label">Etkinlikler</span>
@@ -724,7 +764,10 @@ select option { background: var(--card2); }
       <div class="nav-item" data-page="activity" onclick="navigate('activity',this)">
         <span class="nav-icon">📈</span><span class="sidebar-label">Aktiflik</span>
       </div>
-      <div class="sidebar-section-title">YÖNETİM</div>
+      <div class="sidebar-section-title">YÖNETİM & CEZALAR</div>
+      <div class="nav-item" data-page="bans" onclick="navigate('bans',this)">
+        <span class="nav-icon">🔨</span><span class="sidebar-label">Aktif Banlar</span>
+      </div>
       <div class="nav-item" data-page="banaff" onclick="navigate('banaff',this)">
         <span class="nav-icon">🚫</span><span class="sidebar-label">Ban Affı</span>
       </div>
@@ -847,7 +890,7 @@ select option { background: var(--card2); }
       <div class="page" id="page-players">
         <div class="page-header">
           <h1>FiveM Oyuncuları</h1>
-          <p>Sunucuda anlık olarak bağlı oyuncular</p>
+          <p>Sunucuda anlık olarak bağlı oyuncular ve canlı aksiyonlar</p>
         </div>
         <div class="card">
           <div class="toolbar">
@@ -873,11 +916,68 @@ select option { background: var(--card2); }
                   <th>İSİM</th>
                   <th>PİNG</th>
                   <th>DİSCORD</th>
-                  <th>STEAM</th>
+                  <th>AKSİYONLAR</th>
                 </tr>
               </thead>
               <tbody id="players-tbody">
                 <tr><td colspan="5"><div class="loader"><div class="loader-ring"></div><span class="loader-text">Yükleniyor...</span></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ DISCORD MEMBERS ═══════════ -->
+      <div class="page" id="page-members">
+        <div class="page-header">
+          <h1>Discord Üyeleri</h1>
+          <p>Discord sunucusundaki üyeleri arayın ve yönetin</p>
+        </div>
+        <div class="card">
+          <div class="toolbar">
+            <div class="input-wrap flex1">
+              <span class="input-icon">🔍</span>
+              <input type="text" id="member-search-input" placeholder="Discord Tag veya ID ara..." onkeydown="if(event.key==='Enter') searchMembers()">
+            </div>
+            <button class="btn btn-primary" onclick="searchMembers()">Ara</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>KULLANICI</th>
+                  <th>ID</th>
+                  <th>KATILIM</th>
+                  <th>AKSİYONLAR</th>
+                </tr>
+              </thead>
+              <tbody id="members-tbody">
+                <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text3)">Arama yapmak için yukarıdaki alanı kullanın.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ BANS ═══════════ -->
+      <div class="page" id="page-bans">
+        <div class="page-header">
+          <h1>Aktif Banlar</h1>
+          <p>Discord sunucusundaki yasaklı kullanıcılar</p>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>KULLANICI</th>
+                  <th>ID</th>
+                  <th>SEBEP</th>
+                  <th>İŞLEM</th>
+                </tr>
+              </thead>
+              <tbody id="bans-tbody">
+                <tr><td colspan="4"><div class="loader"><div class="loader-ring"></div></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -975,6 +1075,7 @@ select option { background: var(--card2); }
         </div>
         <div class="toolbar">
           <button class="btn btn-secondary" onclick="loadBanAff()">🔄 Yenile</button>
+          <button class="btn btn-danger" onclick="resetAllBanAffs()">🗑️ Tümünü Temizle</button>
           <span id="banaff-count" style="font-size:13px;color:var(--text3)"></span>
         </div>
         <div class="card">
@@ -982,7 +1083,6 @@ select option { background: var(--card2); }
             <div class="loader"><div class="loader-ring"></div></div>
           </div>
         </div>
-        <!-- Pagination -->
         <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end" id="banaff-pagination"></div>
       </div>
 
@@ -990,21 +1090,25 @@ select option { background: var(--card2); }
       <div class="page" id="page-guard">
         <div class="page-header">
           <h1>Guard Sistemi</h1>
-          <p>Sunucu koruma sisteminin durumu</p>
+          <p>Sunucu koruma sisteminin canlı yönetimi</p>
         </div>
         <div class="grid grid-2">
           <div class="card">
-            <div class="section-title">🛡️ Sistem Durumu</div>
+            <div class="section-title">🛡️ Sistem Durumları (On/Off)</div>
             <div id="guard-items">
               <div class="loader"><div class="loader-ring"></div></div>
             </div>
           </div>
           <div class="card">
-            <div class="section-title">⚙️ Limitler</div>
+            <div class="section-title">⚙️ Limitler & Whitelist</div>
             <div id="guard-limits"></div>
             <div style="margin-top:20px">
-              <div class="section-title">👤 Whitelist</div>
-              <div id="guard-whitelist" style="font-size:13px;color:var(--text2)">Yükleniyor...</div>
+              <div class="section-title">👤 Whitelist Yönetimi</div>
+              <div style="display:flex;gap:10px;margin-bottom:10px">
+                <input type="text" id="wl-add-id" placeholder="Discord User ID">
+                <button class="btn btn-primary btn-sm" onclick="addWhitelist()">Ekle</button>
+              </div>
+              <div id="guard-whitelist-list">Yükleniyor...</div>
             </div>
           </div>
         </div>
@@ -1106,9 +1210,40 @@ select option { background: var(--card2); }
   draw();
 })();
 
-// ═══════════ NAV ═══════════
+// TOAST
+function showToast(msg, type='success'){
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<span>${type==='success'?'✅':'⚠️'}</span> <span>${msg}</span>`;
+  container.appendChild(toast);
+  setTimeout(()=> toast.remove(), 4000);
+}
+
+// CONFIRM MODAL
+let confirmCallback = null;
+function openConfirmModal({ title, body, requireReason=true, onConfirm }){
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-body').textContent = body;
+  const wrap = document.getElementById('confirm-reason-wrap');
+  wrap.style.display = requireReason ? 'block' : 'none';
+  document.getElementById('confirm-reason').value = '';
+  confirmCallback = onConfirm;
+  openModal('modal-confirm');
+}
+
+document.getElementById('confirm-btn').addEventListener('click', ()=>{
+  const reason = document.getElementById('confirm-reason').value.trim();
+  if(document.getElementById('confirm-reason-wrap').style.display !== 'none' && !reason){
+    return showToast('Lütfen bir sebep belirtin!', 'error');
+  }
+  closeModal('modal-confirm');
+  if(confirmCallback) confirmCallback(reason);
+});
+
+// NAV
 const PAGE_TITLES = {
-  dashboard:'Dashboard', players:'FiveM Oyuncuları', 'id-query':'ID Sorgu',
+  dashboard:'Dashboard', players:'FiveM Oyuncuları', members:'Discord Üyeleri', bans:'Aktif Banlar', 'id-query':'ID Sorgu',
   'tag-query':'Tag Sorgu', team:'Ekip / Kadro', events:'Etkinlikler',
   activity:'Aktiflik', banaff:'Ban Affı', guard:'Guard', logs:'Loglar', settings:'Ayarlar'
 };
@@ -1122,8 +1257,9 @@ function navigate(id, el) {
   else document.querySelector(`[data-page="${id}"]`)?.classList.add('active');
   document.getElementById('topbar-title').textContent = PAGE_TITLES[id] || id;
   currentPage = id;
-  // Trigger page load
+  
   if(id==='players') loadPlayers();
+  else if(id==='bans') loadBans();
   else if(id==='team') loadTeam();
   else if(id==='events') loadEvents();
   else if(id==='activity') loadActivity();
@@ -1131,34 +1267,21 @@ function navigate(id, el) {
   else if(id==='guard') loadGuard();
   else if(id==='logs') loadLogs();
   else if(id==='settings') loadSettings();
-  // Mobile close
   closeMobileSidebar();
 }
 
-// ═══════════ SIDEBAR ═══════════
+// SIDEBAR & UTILS
 let sidebarCollapsed = false;
 function toggleSidebar(){
   sidebarCollapsed = !sidebarCollapsed;
   document.getElementById('sidebar').classList.toggle('collapsed', sidebarCollapsed);
   document.getElementById('main').classList.toggle('collapsed', sidebarCollapsed);
 }
-function openMobileSidebar(){
-  document.getElementById('sidebar').classList.add('mobile-open');
-  document.getElementById('mobile-overlay').classList.add('open');
-}
-function closeMobileSidebar(){
-  document.getElementById('sidebar').classList.remove('mobile-open');
-  document.getElementById('mobile-overlay').classList.remove('open');
-}
-
-// ═══════════ MODAL ═══════════
+function openMobileSidebar(){ document.getElementById('sidebar').classList.add('mobile-open'); document.getElementById('mobile-overlay').classList.add('open'); }
+function closeMobileSidebar(){ document.getElementById('sidebar').classList.remove('mobile-open'); document.getElementById('mobile-overlay').classList.remove('open'); }
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.modal-backdrop').forEach(m=>{
-  m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
-});
 
-// ═══════════ UTILS ═══════════
 function fmt(n){ return Number(n).toLocaleString('tr-TR'); }
 function timeAgo(ts){
   if(!ts) return 'Hiç';
@@ -1170,70 +1293,41 @@ function timeAgo(ts){
   if(h<24) return `${h}sa önce`;
   return `${Math.floor(h/24)}g önce`;
 }
-function fmtMs(ms){
-  const h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000), s=Math.floor((ms%60000)/1000);
-  return `${h}s ${m}dk ${s}sn`;
-}
 function pingClass(p){ return p<60?'ping-low':p<120?'ping-mid':'ping-high'; }
-function animCount(el, target, duration=800){
-  const start=parseInt(el.textContent)||0, diff=target-start, fps=30, step=duration/fps;
-  let cur=start;
-  const iv=setInterval(()=>{
-    cur+=diff/fps;
-    el.textContent=Math.round(cur);
-    if((diff>0&&cur>=target)||(diff<0&&cur<=target)||(diff===0)){ el.textContent=target; clearInterval(iv); }
-  }, step);
-}
 function showLoader(id){ document.getElementById(id).innerHTML='<div class="loader"><div class="loader-ring"></div><span class="loader-text">Yükleniyor...</span></div>'; }
 function showError(id, msg){ document.getElementById(id).innerHTML=`<div class="error-state">⚠️ ${msg}</div>`; }
 function showEmpty(id, title='Veri Yok', sub='Henüz kayıt bulunmuyor.'){ document.getElementById(id).innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><h4>${title}</h4><p>${sub}</p></div>`; }
 
-async function apiFetch(path){
-  const r=await fetch(path);
-  if(!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
+async function apiFetch(path, method='GET', body=null){
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if(body) opts.body = JSON.stringify(body);
+  const r = await fetch(path, opts);
+  const data = await r.json();
+  if(!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
 }
 
-// ═══════════ DASHBOARD ═══════════
+// DASHBOARD
 async function loadDashboard(){
   try{
     const d=await apiFetch('/api/dashboard');
-    // FiveM
-    const dot=document.getElementById('bot-status-dot');
-    dot.className='status-dot'+(d.bot.online?'':' offline');
-    // Uptime topbar
+    document.getElementById('bot-status-dot').className='status-dot'+(d.bot.online?'':' offline');
     document.getElementById('topbar-uptime').textContent=d.bot.uptime||'—';
     document.getElementById('topbar-ping').textContent=`${d.bot.ping??'—'} ms`;
-    // Stats
-    const pe=document.getElementById('dash-players');
-    animCount(pe, d.fivem.playerCount);
+    document.getElementById('dash-players').textContent=d.fivem.playerCount;
     document.getElementById('dash-cap').textContent=`/ ${fmt(d.fivem.maxPlayers)} kapasite`;
-    const pingEl=document.getElementById('dash-ping-avg');
-    animCount(pingEl, d.fivem.avgPing);
+    document.getElementById('dash-ping-avg').textContent=d.fivem.avgPing;
     document.getElementById('dash-server-status').innerHTML=d.fivem.online?'<span class="badge badge-green">● Online</span>':'<span class="badge badge-red">● Offline</span>';
     document.getElementById('dash-uptime').textContent=d.bot.uptime;
     document.getElementById('dash-bot-ping').textContent=`WS: ${d.bot.ping}ms`;
-    animCount(document.getElementById('dash-staff'), d.stats.staffCount);
+    document.getElementById('dash-staff').textContent=d.stats.staffCount;
     document.getElementById('dash-banaff').textContent=`${d.stats.banAffCount} ban affı talebi`;
-    // Progress
-    const pct=Math.min(100,Math.round((d.fivem.playerCount/Math.max(1,d.fivem.maxPlayers))*100));
-    document.getElementById('prog-players').textContent=`${d.fivem.playerCount} Oyuncu`;
-    document.getElementById('prog-cap').textContent=`/ ${d.fivem.maxPlayers}`;
-    setTimeout(()=>{ document.getElementById('prog-fill').style.width=pct+'%'; },100);
-    // Active systems
-    animCount(document.getElementById('dash-ingame'), d.stats.activeIngame);
-    animCount(document.getElementById('dash-etkinlik'), d.stats.activeEtkinlik);
-    animCount(document.getElementById('dash-aktiflik'), d.stats.activeAktiflik);
-    animCount(document.getElementById('dash-whitelist'), d.stats.whitelistCount);
-    // Recent logs
     renderRecentLogs(d.recentLogs);
-  }catch(e){
-    document.getElementById('dash-logs').innerHTML=`<div class="error-state">⚠️ ${e.message}</div>`;
-  }
+  }catch(e){}
 }
 
 function renderRecentLogs(logs){
-  if(!logs||!logs.length){ showEmpty('dash-logs','Aktivite Yok','Henüz log kaydı oluşmadı.'); return; }
+  if(!logs||!logs.length){ showEmpty('dash-logs','Aktivite Yok'); return; }
   document.getElementById('dash-logs').innerHTML=logs.map(l=>`
     <div class="log-entry">
       <div class="log-dot ${l.category}"></div>
@@ -1247,316 +1341,226 @@ function renderRecentLogs(logs){
   `).join('');
 }
 
-// ═══════════ PLAYERS ═══════════
+// PLAYERS (FIVEM)
 let allPlayers=[];
 async function loadPlayers(){
-  const btn=document.getElementById('players-refresh-icon');
-  btn.classList.add('refresh-anim'); setTimeout(()=>btn.classList.remove('refresh-anim'),500);
-  document.getElementById('players-tbody').innerHTML='<tr><td colspan="5"><div class="loader"><div class="loader-ring"></div><span class="loader-text">Yükleniyor...</span></div></td></tr>';
   try{
     const d=await apiFetch('/api/fivem/players');
     allPlayers=d.players||[];
-    document.getElementById('players-count').textContent=d.online?`✅ ${d.total} oyuncu online`:`❌ Sunucu offline`;
     filterPlayers();
-  }catch(e){
-    document.getElementById('players-tbody').innerHTML=`<tr><td colspan="5"><div class="error-state">⚠️ ${e.message}</div></td></tr>`;
-  }
+  }catch(e){}
 }
 function filterPlayers(){
   const q=(document.getElementById('players-search').value||'').toLowerCase();
-  const sort=document.getElementById('players-sort').value;
-  let list=[...allPlayers].filter(p=>{
-    return !q||String(p.id).includes(q)||p.name.toLowerCase().includes(q)||(p.discord&&p.discord.includes(q));
-  });
-  if(sort==='name') list.sort((a,b)=>a.name.localeCompare(b.name));
-  else if(sort==='ping') list.sort((a,b)=>a.ping-b.ping);
-  else list.sort((a,b)=>a.id-b.id);
-  if(!list.length){ document.getElementById('players-tbody').innerHTML='<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🔍</div><h4>Sonuç Bulunamadı</h4></div></td></tr>'; return; }
+  let list=[...allPlayers].filter(p=> !q||String(p.id).includes(q)||p.name.toLowerCase().includes(q)||(p.discord&&p.discord.includes(q)) );
   document.getElementById('players-tbody').innerHTML=list.map(p=>`
-    <tr onclick="showPlayerModal(${JSON.stringify(p).replace(/"/g,'&quot;')})">
+    <tr>
       <td><span class="mono">${p.id}</span></td>
       <td><strong>${escHtml(p.name)}</strong></td>
       <td><span class="ping-val ${pingClass(p.ping)}">${p.ping}ms</span></td>
       <td><span class="mono">${p.discord||'—'}</span></td>
-      <td><span class="mono" style="font-size:11px">${p.steam?p.steam.slice(0,18)+'…':'—'}</span></td>
+      <td>
+        ${p.discord ? `<button class="btn btn-danger btn-sm" onclick="promptBan('${p.discord}')">Ban</button>
+        <button class="btn btn-secondary btn-sm" onclick="promptKick('${p.discord}')">Kick</button>` : '—'}
+      </td>
     </tr>
   `).join('');
 }
-function showPlayerModal(p){
-  document.getElementById('modal-player-body').innerHTML=`
-    <div class="modal-field"><label>İSİM</label><div class="val">${escHtml(p.name)}</div></div>
-    <div class="modal-field"><label>FiveM ID</label><div class="val">${p.id}</div></div>
-    <div class="modal-field"><label>PİNG</label><div class="val"><span class="${pingClass(p.ping)}">${p.ping}ms</span></div></div>
-    <div class="modal-field"><label>DİSCORD ID</label><div class="val">${p.discord||'Yok'}</div></div>
-    <div class="modal-field"><label>STEAM</label><div class="val">${p.steam||'Yok'}</div></div>
-    <div class="modal-field"><label>LICENSE</label><div class="val">${p.license||'Yok'}</div></div>
-  `;
-  openModal('modal-player');
-}
-function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ═══════════ ID QUERY ═══════════
-function clearIdResult(){ document.getElementById('id-result').innerHTML=''; }
-async function queryId(){
-  const id=document.getElementById('id-input').value.trim();
-  if(!id){ document.getElementById('id-result').innerHTML='<div class="error-state">⚠️ Bir ID girin.</div>'; return; }
-  document.getElementById('id-result').innerHTML='<div class="loader"><div class="loader-ring"></div></div>';
+// DISCORD MEMBERS
+async function searchMembers(){
+  const q = document.getElementById('member-search-input').value.trim();
   try{
-    const d=await apiFetch('/api/fivem/player/'+id);
-    if(!d.found){ document.getElementById('id-result').innerHTML='<div class="error-state">⚠️ Oyuncu bulunamadı.</div>'; return; }
-    document.getElementById('id-result').innerHTML=`
-      <div class="card" style="max-width:520px">
-        <div class="section-title">🎮 Oyuncu Bilgileri</div>
-        <div class="modal-field"><label>İSİM</label><div class="val">${escHtml(d.name)}</div></div>
-        <div class="modal-field"><label>FiveM ID</label><div class="val">${d.id}</div></div>
-        <div class="modal-field"><label>PİNG</label><div class="val"><span class="${pingClass(d.ping)}">${d.ping}ms</span></div></div>
-        <div class="modal-field"><label>STEAM</label><div class="val">${d.steam||'Yok'}</div></div>
-        <div class="modal-field"><label>DİSCORD</label><div class="val">${d.discord||'Yok'}</div></div>
-      </div>
-    `;
-  }catch(e){ document.getElementById('id-result').innerHTML=`<div class="error-state">⚠️ ${e.message}</div>`; }
-}
-
-// ═══════════ TAG QUERY ═══════════
-function clearTagResult(){ document.getElementById('tag-result').innerHTML=''; }
-async function queryTag(){
-  const q=document.getElementById('tag-input').value.trim();
-  if(!q){ document.getElementById('tag-result').innerHTML='<div class="error-state">⚠️ Bir isim girin.</div>'; return; }
-  document.getElementById('tag-result').innerHTML='<div class="loader"><div class="loader-ring"></div></div>';
-  try{
-    const d=await apiFetch('/api/fivem/tag/'+encodeURIComponent(q));
-    if(!d.results||!d.results.length){ document.getElementById('tag-result').innerHTML='<div class="error-state">⚠️ Oyuncu bulunamadı.</div>'; return; }
-    document.getElementById('tag-result').innerHTML=`
-      <div class="card">
-        <div style="margin-bottom:12px;font-size:13px;color:var(--text3)">🔍 ${d.total} sonuç bulundu</div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>ID</th><th>İSİM</th><th>PİNG</th><th>DİSCORD</th></tr></thead>
-            <tbody>${d.results.map(p=>`
-              <tr>
-                <td><span class="mono">${p.id}</span></td>
-                <td><strong>${escHtml(p.name)}</strong></td>
-                <td><span class="ping-val ${pingClass(p.ping)}">${p.ping}ms</span></td>
-                <td><span class="mono">${p.discord||'—'}</span></td>
-              </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  }catch(e){ document.getElementById('tag-result').innerHTML=`<div class="error-state">⚠️ ${e.message}</div>`; }
-}
-
-// ═══════════ TEAM ═══════════
-async function loadTeam(){
-  try{
-    const d=await apiFetch('/api/team');
-    const members=d.staff||[];
-    if(!members.length){ document.getElementById('team-grid').innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">👥</div><h4>Yetkili Yok</h4><p>Henüz yetkili eklenmemiş.</p></div>'; return; }
-    document.getElementById('team-grid').innerHTML=members.map(m=>{
-      const isOwner=d.owners?.includes(m.id);
-      const act=m.activity||{};
-      const initial=(m.id||'?')[0].toUpperCase();
-      return `
-        <div class="card led-border" style="animation:slide-up 0.4s ease forwards;opacity:0">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-            <div class="avatar">${initial}</div>
-            <div>
-              <div style="font-weight:600;font-size:13px">${m.id}</div>
-              <div style="margin-top:4px">${isOwner?'<span class="badge badge-yellow">👑 Owner</span>':'<span class="badge badge-blue">🛡️ Yetkili</span>'}</div>
-            </div>
-          </div>
-          <div style="font-size:12px;color:var(--text3);margin-bottom:6px">AKTİVİTE</div>
-          <div style="font-size:12px;color:var(--text2);margin-bottom:4px">💬 Son Mesaj: ${timeAgo(act.lastMessageAt)}</div>
-          <div style="font-size:12px;color:var(--text2);margin-bottom:4px">🎧 Son Ses: ${timeAgo(act.lastVoiceJoinAt)}</div>
-          <div style="font-size:12px;color:var(--text2);margin-bottom:12px">🎮 İngame: ${act.ingameCount||0} kez</div>
-          <div style="font-size:12px;color:var(--text3)">OT BAKİYESİ</div>
-          <div style="font-size:20px;font-weight:700;font-family:var(--mono)">${fmt(m.ot)}</div>
-        </div>
-      `;
-    }).join('');
-  }catch(e){
-    document.getElementById('team-grid').innerHTML=`<div class="error-state" style="grid-column:1/-1">⚠️ ${e.message}</div>`;
-  }
-}
-
-// ═══════════ EVENTS ═══════════
-async function loadEvents(){
-  try{
-    const d=await apiFetch('/api/events');
-    const items=[];
-    (d.ingames||[]).forEach(g=>items.push({type:'ingame',icon:'🎮',title:g.title||'İngame',sub:`${g.joined}/${g.limit} Katılımcı`,status:g.closed?'closed':'open',rem:g.remaining}));
-    (d.etkinlikler||[]).forEach(e=>items.push({type:'etkinlik',icon:'🎯',title:e.title||'Etkinlik',sub:`${e.joined}/${e.limit} Katılımcı`,status:e.closed?'closed':'open',rem:null}));
-    (d.aktiflikler||[]).forEach(a=>items.push({type:'aktiflik',icon:'📊',title:'Aktiflik Testi',sub:`${a.joined} katıldı`,status:a.closed?'closed':'open',rem:a.remaining}));
-    if(!items.length){ document.getElementById('events-grid').innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🎯</div><h4>Aktif Etkinlik Yok</h4><p>Şu an aktif etkinlik veya ingame yok.</p></div>'; return; }
-    document.getElementById('events-grid').innerHTML=items.map(it=>`
-      <div class="card led-border">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-          <span style="font-size:24px">${it.icon}</span>
-          <div>
-            <div style="font-weight:600">${escHtml(it.title)}</div>
-            <div style="font-size:12px;color:var(--text3)">${it.type.toUpperCase()}</div>
-          </div>
-        </div>
-        <div style="font-size:14px;color:var(--text2);margin-bottom:10px">${it.sub}</div>
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <span class="badge ${it.status==='open'?'badge-green':'badge-gray'}">${it.status==='open'?'● Aktif':'● Kapandı'}</span>
-          ${it.rem!=null?`<span style="font-size:12px;font-family:var(--mono);color:var(--text3)">${fmtMs(it.rem)} kaldı</span>`:''}
-        </div>
-      </div>
-    `).join('');
-  }catch(e){
-    document.getElementById('events-grid').innerHTML=`<div class="error-state" style="grid-column:1/-1">⚠️ ${e.message}</div>`;
-  }
-}
-
-// ═══════════ ACTIVITY ═══════════
-async function loadActivity(){
-  try{
-    const d=await apiFetch('/api/activity');
-    const stats=d.stats||[];
-    if(!stats.length){ document.getElementById('activity-tbody').innerHTML='<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">📈</div><h4>Aktivite Yok</h4></div></td></tr>'; return; }
-    document.getElementById('activity-tbody').innerHTML=stats.map(s=>`
+    const d = await apiFetch(`/api/members?q=${encodeURIComponent(q)}`);
+    document.getElementById('members-tbody').innerHTML = d.members.map(m => `
       <tr>
-        <td><span class="mono">${s.userId}</span></td>
-        <td><span style="color:var(--text2)">${s.lastMessageAgo||'Hiç'}</span></td>
-        <td><span style="color:var(--text2)">${s.lastVoiceAgo||'Hiç'}</span></td>
+        <td><strong>${escHtml(m.tag)}</strong></td>
+        <td><span class="mono">${m.id}</span></td>
+        <td>${new Date(m.joinedAt).toLocaleDateString('tr-TR')}</td>
         <td>
-          <span class="badge ${s.ingameCount>0?'badge-green':'badge-gray'}">${s.ingameCount} kez</span>
+          <button class="btn btn-danger btn-sm" onclick="promptBan('${m.id}')">Ban</button>
+          <button class="btn btn-secondary btn-sm" onclick="promptKick('${m.id}')">Kick</button>
+          <button class="btn btn-secondary btn-sm" onclick="promptTimeout('${m.id}')">Timeout</button>
         </td>
       </tr>
     `).join('');
-  }catch(e){
-    document.getElementById('activity-tbody').innerHTML=`<tr><td colspan="4"><div class="error-state">⚠️ ${e.message}</div></td></tr>`;
-  }
+  }catch(e){ showToast(e.message, 'error'); }
 }
 
-// ═══════════ BAN AFFI ═══════════
-let banAffPage=1;
-async function loadBanAff(page){
-  if(page) banAffPage=page;
-  showLoader('banaff-list');
-  try{
-    const d=await apiFetch(`/api/ban-aff?page=${banAffPage}&limit=10`);
-    document.getElementById('banaff-count').textContent=`Toplam ${d.total} talep`;
-    if(!d.records||!d.records.length){ showEmpty('banaff-list','Talep Yok','Ban affı talebi bulunmuyor.'); document.getElementById('banaff-pagination').innerHTML=''; return; }
-    document.getElementById('banaff-list').innerHTML=d.records.map(r=>`
-      <div style="padding:16px 0;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-          <div class="avatar">?</div>
-          <div>
-            <div style="font-weight:600;font-size:13px">${r.userTag||r.userId}</div>
-            <div style="font-size:11px;font-family:var(--mono);color:var(--text3)">${r.userId}</div>
-          </div>
-          <div style="margin-left:auto;font-size:11px;color:var(--text3)">${new Date(r.createdAt).toLocaleDateString('tr-TR')}</div>
+// BANS
+async function loadBans(){
+  try {
+    const d = await apiFetch('/api/bans');
+    document.getElementById('bans-tbody').innerHTML = d.bans.map(b => `
+      <tr>
+        <td><strong>${escHtml(b.tag)}</strong></td>
+        <td><span class="mono">${b.userId}</span></td>
+        <td>${escHtml(b.reason)}</td>
+        <td><button class="btn btn-primary btn-sm" onclick="unbanUser('${b.userId}')">Ban Kaldır</button></td>
+      </tr>
+    `).join('');
+  } catch(e){}
+}
+
+// PROMPT ACTIONS
+function promptBan(userId){
+  openConfirmModal({
+    title: 'Kullanıcı Banla',
+    body: `${userId} ID'li kullanıcıyı yasaklamak üzeresiniz.`,
+    onConfirm: async (reason) => {
+      await apiFetch('/api/admin/ban', 'POST', { userId, reason });
+      showToast('Kullanıcı banlandı');
+      if(currentPage==='bans') loadBans();
+    }
+  });
+}
+
+function promptKick(userId){
+  openConfirmModal({
+    title: 'Kullanıcı At (Kick)',
+    body: `${userId} ID'li kullanıcıyı sunucudan atmak üzeresiniz.`,
+    onConfirm: async (reason) => {
+      await apiFetch('/api/admin/kick', 'POST', { userId, reason });
+      showToast('Kullanıcı atıldı');
+    }
+  });
+}
+
+function promptTimeout(userId){
+  openConfirmModal({
+    title: 'Timeout Uygula (Dakika)',
+    body: `${userId} ID'li kullanıcıya timeout uygulanacak.`,
+    onConfirm: async (reason) => {
+      await apiFetch('/api/admin/timeout', 'POST', { userId, minutes: 10, reason });
+      showToast('Timeout uygulandı');
+    }
+  });
+}
+
+async function unbanUser(userId){
+  await apiFetch('/api/admin/unban', 'POST', { userId });
+  showToast('Ban kaldırıldı');
+  loadBans();
+}
+
+// BAN AFFI
+async function loadBanAff(){
+  try {
+    const d = await apiFetch('/api/ban-aff');
+    document.getElementById('banaff-list').innerHTML = d.records.map(r => `
+      <div style="padding:12px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <strong>${r.userTag || r.userId}</strong> <span class="mono">(${r.userId})</span>
+          <p style="font-size:12px;color:var(--text2);margin-top:4px">${escHtml(r.reason)}</p>
         </div>
-        <div style="font-size:13px;color:var(--text2);background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-family:var(--mono);white-space:pre-wrap;word-break:break-word">${escHtml(r.reason)}</div>
+        <button class="btn btn-danger btn-sm" onclick="deleteBanAff('${r.id}')">Sil</button>
       </div>
     `).join('');
-    // Pagination
-    const pages=d.pages||1;
-    let pg='';
-    for(let i=1;i<=pages;i++) pg+=`<button class="btn ${i===banAffPage?'btn-primary':'btn-secondary'} btn-sm" onclick="loadBanAff(${i})">${i}</button>`;
-    document.getElementById('banaff-pagination').innerHTML=pg;
-  }catch(e){ showError('banaff-list',e.message); }
+  } catch(e){}
 }
 
-// ═══════════ GUARD ═══════════
+async function deleteBanAff(id){
+  await apiFetch('/api/admin/ban-aff/delete', 'POST', { id });
+  showToast('Kayıt silindi');
+  loadBanAff();
+}
+
+async function resetAllBanAffs(){
+  openConfirmModal({
+    title: 'Tüm Ban Affı Taleplerini Sıfırla',
+    body: 'Tüm başvurular silinecektir. Emin misiniz?',
+    requireReason: false,
+    onConfirm: async () => {
+      await apiFetch('/api/admin/ban-aff/reset', 'POST');
+      showToast('Tüm talepler sıfırlandı');
+      loadBanAff();
+    }
+  });
+}
+
+// GUARD
 async function loadGuard(){
-  try{
-    const d=await apiFetch('/api/guard');
-    const sys=[
-      {key:'ban',icon:'🔨',name:'Ban Koruması',val:d.systems?.ban,limit:d.limits?.ban},
-      {key:'kick',icon:'👢',name:'Kick Koruması',val:d.systems?.kick,limit:d.limits?.kick},
-      {key:'channel',icon:'📺',name:'Kanal Koruması',val:d.systems?.channel,limit:d.limits?.channel},
-      {key:'role',icon:'👑',name:'Rol Koruması',val:d.systems?.role,limit:d.limits?.role},
-    ];
-    document.getElementById('guard-items').innerHTML=`
+  try {
+    const d = await apiFetch('/api/guard');
+    document.getElementById('guard-items').innerHTML = `
       <div class="guard-item">
-        <div class="guard-item-info">
-          <div class="guard-item-title">🛡️ Guard Sistemi</div>
-          <div class="guard-item-sub">Pencere: ${d.windowMinutes} dakika</div>
-        </div>
-        <span class="badge ${d.enabled?'badge-green':'badge-red'}">${d.enabled?'● Aktif':'● Pasif'}</span>
+        <div class="guard-item-info"><div class="guard-item-title">Genel Guard</div></div>
+        <label class="switch"><input type="checkbox" ${d.enabled?'checked':''} onchange="toggleGuardSys('general', this.checked)"><span class="slider"></span></label>
       </div>
-      ${sys.map(s=>`
+      ${Object.keys(d.systems).map(sys => `
         <div class="guard-item">
-          <div class="guard-item-info">
-            <div class="guard-item-title">${s.icon} ${s.name}</div>
-            <div class="guard-item-sub">Limit: ${s.limit} işlem</div>
-          </div>
-          <span class="badge ${s.val?'badge-green':'badge-red'}">${s.val?'● Açık':'● Kapalı'}</span>
+          <div class="guard-item-info"><div class="guard-item-title">${sys.toUpperCase()} Koruması</div></div>
+          <label class="switch"><input type="checkbox" ${d.systems[sys]?'checked':''} onchange="toggleGuardSys('${sys}', this.checked)"><span class="slider"></span></label>
         </div>
       `).join('')}
     `;
-    document.getElementById('guard-limits').innerHTML=sys.map(s=>`
-      <div style="margin-bottom:14px">
-        <div class="progress-label"><span>${s.icon} ${s.name}</span><span>${s.limit} limit</span></div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,(s.limit||0)*20)}%"></div></div>
+
+    document.getElementById('guard-limits').innerHTML = Object.keys(d.limits).map(sys => `
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+        <span style="flex:1;font-size:13px">${sys.toUpperCase()} Limiti</span>
+        <input type="number" id="limit-${sys}" value="${d.limits[sys]}" style="width:70px">
+        <button class="btn btn-secondary btn-sm" onclick="saveGuardLimit('${sys}')">Kaydet</button>
       </div>
     `).join('');
-    const wl=d.whitelist||[];
-    document.getElementById('guard-whitelist').innerHTML=wl.length?`<span class="badge badge-blue" style="margin-right:4px">${d.whitelistCount} Kişi</span>`+wl.slice(0,5).map(id=>`<div class="mono" style="font-size:12px;margin-top:4px">${id}</div>`).join('')+(wl.length>5?`<div style="font-size:11px;color:var(--text3);margin-top:4px">+${wl.length-5} daha...</div>`:''):'<span class="badge badge-gray">Whitelist boş</span>';
-  }catch(e){ showError('guard-items',e.message); }
+
+    document.getElementById('guard-whitelist-list').innerHTML = d.whitelist.map(id => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+        <span class="mono">${id}</span>
+        <button class="btn btn-danger btn-sm" onclick="removeWhitelist('${id}')">Kaldır</button>
+      </div>
+    `).join('') || 'Whitelist boş.';
+  } catch(e){}
 }
 
-// ═══════════ LOGS ═══════════
+async function toggleGuardSys(system, enabled){
+  await apiFetch('/api/admin/guard/toggle', 'POST', { system, enabled });
+  showToast('Guard ayarı güncellendi');
+}
+
+async function saveGuardLimit(system){
+  const limit = document.getElementById(`limit-${system}`).value;
+  await apiFetch('/api/admin/guard/limit', 'POST', { system, limit });
+  showToast('Limit güncellendi');
+}
+
+async function addWhitelist(){
+  const userId = document.getElementById('wl-add-id').value.trim();
+  if(!userId) return;
+  await apiFetch('/api/admin/whitelist/add', 'POST', { userId });
+  document.getElementById('wl-add-id').value = '';
+  showToast('Whitelist eklendi');
+  loadGuard();
+}
+
+async function removeWhitelist(userId){
+  await apiFetch('/api/admin/whitelist/remove', 'POST', { userId });
+  showToast('Whitelist çıkarıldı');
+  loadGuard();
+}
+
+// LOGS
 async function loadLogs(){
-  showLoader('logs-list');
-  try{
-    const cat=document.getElementById('log-filter').value;
-    const url='/api/logs'+(cat?'?category='+cat:'');
-    const d=await apiFetch(url);
-    const logs=d.logs||[];
-    document.getElementById('log-count').textContent=`${logs.length} kayıt`;
-    if(!logs.length){ showEmpty('logs-list','Log Yok','Seçilen kategoride kayıt yok.'); return; }
-    document.getElementById('logs-list').innerHTML=logs.map(l=>`
+  try {
+    const cat = document.getElementById('log-filter').value;
+    const d = await apiFetch('/api/logs' + (cat ? '?category=' + cat : ''));
+    document.getElementById('logs-list').innerHTML = d.logs.map(l => `
       <div class="log-entry">
         <div class="log-dot ${l.category}"></div>
         <div class="log-body">
           <div class="log-category">${l.category}</div>
           <div class="log-action">${escHtml(l.action)}</div>
-          ${l.detail?`<div class="log-detail">${escHtml(l.detail)}</div>`:''}
+          ${l.detail ? `<div class="log-detail">${escHtml(l.detail)}</div>` : ''}
         </div>
         <div class="log-time">${timeAgo(l.ts)}</div>
       </div>
     `).join('');
-  }catch(e){ showError('logs-list',e.message); }
+  } catch(e){}
 }
 
-// ═══════════ SETTINGS ═══════════
-async function loadSettings(){
-  try{
-    const d=await apiFetch('/api/dashboard');
-    const c=await apiFetch('/api/config');
-    document.getElementById('settings-bot').innerHTML=`
-      <div class="modal-field"><label>DURUM</label><div class="val">${d.bot.online?'🟢 Online':'🔴 Offline'}</div></div>
-      <div class="modal-field"><label>UPTIME</label><div class="val">${d.bot.uptime}</div></div>
-      <div class="modal-field"><label>WS PİNG</label><div class="val">${d.bot.ping}ms</div></div>
-      <div class="modal-field"><label>BAKIM MODU</label><div class="val">${d.bot.maintenance?'⚠️ Açık':'✅ Kapalı'}</div></div>
-    `;
-    document.getElementById('settings-api').innerHTML=`
-      <div class="modal-field"><label>CFX SUNUCU KODU</label><div class="val">${c.cfxCode||'—'}</div></div>
-      <div class="modal-field"><label>PANEL YEKİLİ</label><div class="val">${c.panelAuthor||'—'}</div></div>
-      <div class="modal-field"><label>LOG KANALLARI</label><div class="val">${(c.logChannels||[]).join(', ')||'Henüz ayarlanmadı'}</div></div>
-    `;
-  }catch(e){
-    document.getElementById('settings-bot').innerHTML=`<div class="error-state">⚠️ ${e.message}</div>`;
-  }
-}
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ═══════════ KEYBOARD ═══════════
-document.addEventListener('keydown', e=>{
-  if(e.key==='Escape') document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open'));
-  if(e.key==='Enter' && document.getElementById('id-input')===document.activeElement) queryId();
-  if(e.key==='Enter' && document.getElementById('tag-input')===document.activeElement) queryTag();
-});
-
-// ═══════════ AUTO REFRESH ═══════════
 loadDashboard();
 setInterval(()=>{ if(currentPage==='dashboard') loadDashboard(); }, 30000);
-setInterval(()=>{ if(currentPage==='players') loadPlayers(); }, 30000);
-setInterval(()=>{ if(currentPage==='logs') loadLogs(); }, 15000);
 </script>
 </body>
 </html>
