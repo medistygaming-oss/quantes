@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TeamCruz — Full Yönetim Paneli</title>
+<title>TeamCruz — FiveM Panel</title>
 <meta name="description" content="TeamCruz FiveM Sunucu Yönetim Paneli — Oyuncu takibi, ekip yönetimi, guard sistemi ve daha fazlası.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -38,7 +38,9 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 html { scroll-behavior: smooth; }
+
 body {
   font-family: var(--font);
   background: var(--bg);
@@ -48,6 +50,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* PARTICLES CANVAS */
 #particles-canvas {
   position: fixed;
   top: 0; left: 0;
@@ -57,6 +60,7 @@ body {
   opacity: 0.35;
 }
 
+/* LAYOUT */
 .layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
 
 /* SIDEBAR */
@@ -411,13 +415,10 @@ td strong { color: var(--text); font-weight: 500; }
 .btn-secondary:hover { border-color: var(--border-glow); background: var(--card3); }
 .btn-danger { background: rgba(239,68,68,0.2); color: var(--red); border: 1px solid var(--red); }
 .btn-danger:hover { background: var(--red); color: white; }
-.btn-success { background: rgba(34,197,94,0.2); color: var(--green); border: 1px solid var(--green); }
-.btn-success:hover { background: var(--green); color: white; }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
-.btn-xs { padding: 4px 8px; font-size: 11px; }
 
 /* INPUT */
-input, select, textarea {
+input, select {
   width: 100%;
   background: var(--card2);
   border: 1px solid var(--border);
@@ -429,9 +430,8 @@ input, select, textarea {
   outline: none;
   transition: border-color var(--transition);
 }
-input:focus, select:focus, textarea:focus { border-color: var(--border-glow); }
+input:focus, select:focus { border-color: var(--border-glow); }
 select option { background: var(--card2); }
-textarea { resize: vertical; min-height: 80px; }
 
 /* TOGGLE SWITCH */
 .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
@@ -442,17 +442,15 @@ input:checked + .slider { background-color: var(--green); }
 input:checked + .slider:before { transform: translateX(18px); }
 
 /* TOAST NOTIFICATIONS */
-#toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; max-width: 400px; }
+#toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; }
 .toast { background: var(--card2); border: 1px solid var(--border-glow); padding: 12px 18px; border-radius: var(--radius2); font-size: 13px; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); animation: toast-in 0.3s ease; }
 .toast-success { border-color: var(--green); }
 .toast-error { border-color: var(--red); }
-.toast-warning { border-color: var(--yellow); }
 @keyframes toast-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
 /* TOOLBAR */
 .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
 .toolbar .flex1 { flex: 1; min-width: 200px; }
-.toolbar .flex { display: flex; gap: 8px; align-items: center; }
 
 /* MODAL */
 .modal-backdrop {
@@ -463,38 +461,16 @@ input:checked + .slider:before { transform: translateX(18px); }
 .modal-backdrop.open { display: flex; }
 .modal {
   background: var(--card); border: 1px solid var(--border-glow);
-  border-radius: var(--radius); padding: 28px; max-width: 560px; width: 100%;
-  max-height: 90vh; overflow-y: auto;
+  border-radius: var(--radius); padding: 28px; max-width: 520px; width: 100%;
 }
 .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-.modal-close { background: none; border: none; color: var(--text3); font-size: 20px; cursor: pointer; transition: color var(--transition); }
-.modal-close:hover { color: var(--text); }
+.modal-close { background: none; border: none; color: var(--text3); font-size: 20px; cursor: pointer; }
 
-/* LOADING */
-.loading { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--text3); gap: 12px; }
-.loading::after { content: ''; width: 20px; height: 20px; border: 2px solid var(--border); border-top: 2px solid var(--text); border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* RESPONSIVE */
-@media (max-width: 1200px) {
-  .grid-4 { grid-template-columns: repeat(2, 1fr); }
-  .grid-3 { grid-template-columns: repeat(2, 1fr); }
-}
 @media (max-width: 900px) {
   .sidebar { left: -100%; width: var(--sidebar-w) !important; }
   .sidebar.mobile-open { left: 0; }
   .main { margin-left: 0 !important; }
   .burger-btn { display: flex; }
-  .grid-4 { grid-template-columns: repeat(2, 1fr); }
-  .grid-3 { grid-template-columns: 1fr; }
-  .grid-2-1 { grid-template-columns: 1fr; }
-}
-@media (max-width: 600px) {
-  .grid-4 { grid-template-columns: 1fr; }
-  .grid-2 { grid-template-columns: 1fr; }
-  .page-content { padding: 16px; }
-  .topbar { padding: 0 16px; flex-wrap: wrap; height: auto; min-height: 60px; gap: 8px; }
-  .topbar-title { font-size: 14px; }
 }
 </style>
 </head>
@@ -502,6 +478,7 @@ input:checked + .slider:before { transform: translateX(18px); }
 
 <canvas id="particles-canvas"></canvas>
 <div id="toast-container"></div>
+<div class="mobile-overlay" id="mobile-overlay" onclick="closeMobileSidebar()"></div>
 
 <!-- CONFIRM MODAL -->
 <div class="modal-backdrop" id="modal-confirm">
@@ -522,17 +499,6 @@ input:checked + .slider:before { transform: translateX(18px); }
   </div>
 </div>
 
-<!-- DETAIL MODAL -->
-<div class="modal-backdrop" id="modal-detail">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="detail-title">Detay</h3>
-      <button class="modal-close" onclick="closeModal('modal-detail')">✕</button>
-    </div>
-    <div id="detail-body" style="font-size:13px;color:var(--text2)"></div>
-  </div>
-</div>
-
 <div class="layout">
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
@@ -540,113 +506,51 @@ input:checked + .slider:before { transform: translateX(18px); }
       <div class="logo-icon">⚡</div>
       <div class="logo-text">
         <h2>TeamCruz</h2>
-        <p>Full Kontrol</p>
+        <p>FiveM Panel</p>
       </div>
     </div>
     <nav class="sidebar-nav">
-      <div class="sidebar-section-title">📊 DASHBOARD</div>
+      <div class="sidebar-section-title">GENEL</div>
       <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard',this)">
-        <span class="nav-icon">📈</span><span class="sidebar-label">Genel Bakış</span>
+        <span class="nav-icon">📊</span><span class="sidebar-label">Dashboard</span>
       </div>
-      <div class="nav-item" data-page="bot-status" onclick="navigate('bot-status',this)">
-        <span class="nav-icon">🤖</span><span class="sidebar-label">Bot Durumu</span>
+      <div class="sidebar-section-title">PANEL SİSTEMLERİ</div>
+      <div class="nav-item" data-page="send-panel" onclick="navigate('send-panel',this)">
+        <span class="nav-icon">⚡</span><span class="sidebar-label">Discord Panel Gönder</span>
       </div>
-
-      <div class="sidebar-section-title">👥 DISCORD YÖNETİMİ</div>
+      <div class="sidebar-section-title">FİVEM & DISCORD</div>
+      <div class="nav-item" data-page="players" onclick="navigate('players',this)">
+        <span class="nav-icon">🎮</span><span class="sidebar-label">FiveM Oyuncuları</span>
+      </div>
       <div class="nav-item" data-page="members" onclick="navigate('members',this)">
-        <span class="nav-icon">👥</span><span class="sidebar-label">Üye Yönetimi</span>
+        <span class="nav-icon">👥</span><span class="sidebar-label">Discord Üyeleri</span>
       </div>
+      <div class="sidebar-section-title">EKİP & ETKİNLİK</div>
+      <div class="nav-item" data-page="team" onclick="navigate('team',this)">
+        <span class="nav-icon">👑</span><span class="sidebar-label">Ekip / Kadro</span>
+      </div>
+      <div class="nav-item" data-page="events" onclick="navigate('events',this)">
+        <span class="nav-icon">🎯</span><span class="sidebar-label">Etkinlikler</span>
+      </div>
+      <div class="sidebar-section-title">YÖNETİM & CEZALAR</div>
       <div class="nav-item" data-page="bans" onclick="navigate('bans',this)">
-        <span class="nav-icon">🔨</span><span class="sidebar-label">Ban Yönetimi</span>
+        <span class="nav-icon">🔨</span><span class="sidebar-label">Aktif Banlar</span>
       </div>
-      <div class="nav-item" data-page="kicks" onclick="navigate('kicks',this)">
-        <span class="nav-icon">🚪</span><span class="sidebar-label">Kick Yönetimi</span>
+      <div class="nav-item" data-page="banaff" onclick="navigate('banaff',this)">
+        <span class="nav-icon">🚫</span><span class="sidebar-label">Ban Affı</span>
       </div>
-      <div class="nav-item" data-page="timeouts" onclick="navigate('timeouts',this)">
-        <span class="nav-icon">⏳</span><span class="sidebar-label">Timeout Yönetimi</span>
-      </div>
-      <div class="nav-item" data-page="roles" onclick="navigate('roles',this)">
-        <span class="nav-icon">🎭</span><span class="sidebar-label">Rol Yönetimi</span>
-      </div>
-      <div class="nav-item" data-page="dm" onclick="navigate('dm',this)">
-        <span class="nav-icon">📬</span><span class="sidebar-label">DM Gönderimi</span>
-      </div>
-      <div class="nav-item" data-page="voice" onclick="navigate('voice',this)">
-        <span class="nav-icon">🎧</span><span class="sidebar-label">Ses Yönetimi</span>
-      </div>
-
-      <div class="sidebar-section-title">🎮 FIVEM</div>
-      <div class="nav-item" data-page="fivem-players" onclick="navigate('fivem-players',this)">
-        <span class="nav-icon">🕹️</span><span class="sidebar-label">Online Oyuncular</span>
-      </div>
-      <div class="nav-item" data-page="fivem-search" onclick="navigate('fivem-search',this)">
-        <span class="nav-icon">🔍</span><span class="sidebar-label">Oyuncu Ara</span>
-      </div>
-
-      <div class="sidebar-section-title">📋 PANELLER</div>
-      <div class="nav-item" data-page="panel-ticket" onclick="navigate('panel-ticket',this)">
-        <span class="nav-icon">🎫</span><span class="sidebar-label">Ticket Paneli</span>
-      </div>
-      <div class="nav-item" data-page="panel-banaff" onclick="navigate('panel-banaff',this)">
-        <span class="nav-icon">🚫</span><span class="sidebar-label">Ban Affı Paneli</span>
-      </div>
-      <div class="nav-item" data-page="panel-ingame" onclick="navigate('panel-ingame',this)">
-        <span class="nav-icon">⚔️</span><span class="sidebar-label">Ingame Paneli</span>
-      </div>
-      <div class="nav-item" data-page="panel-etkinlik" onclick="navigate('panel-etkinlik',this)">
-        <span class="nav-icon">🎯</span><span class="sidebar-label">Etkinlik Paneli</span>
-      </div>
-      <div class="nav-item" data-page="panel-aktiflik" onclick="navigate('panel-aktiflik',this)">
-        <span class="nav-icon">📊</span><span class="sidebar-label">Aktiflik Paneli</span>
-      </div>
-
-      <div class="sidebar-section-title">👑 EKİP SİSTEMİ</div>
-      <div class="nav-item" data-page="team-members" onclick="navigate('team-members',this)">
-        <span class="nav-icon">👑</span><span class="sidebar-label">Ekip Üyeleri</span>
-      </div>
-      <div class="nav-item" data-page="team-staff" onclick="navigate('team-staff',this)">
-        <span class="nav-icon">🛡️</span><span class="sidebar-label">Staff Yönetimi</span>
-      </div>
-      <div class="nav-item" data-page="team-ot" onclick="navigate('team-ot',this)">
-        <span class="nav-icon">🌿</span><span class="sidebar-label">OT Yönetimi</span>
-      </div>
-      <div class="nav-item" data-page="team-activity" onclick="navigate('team-activity',this)">
-        <span class="nav-icon">📈</span><span class="sidebar-label">Aktivite İstatistikleri</span>
-      </div>
-
-      <div class="sidebar-section-title">🛡️ GÜVENLİK</div>
       <div class="nav-item" data-page="guard" onclick="navigate('guard',this)">
-        <span class="nav-icon">🛡️</span><span class="sidebar-label">Guard Sistemleri</span>
+        <span class="nav-icon">🛡️</span><span class="sidebar-label">Guard</span>
       </div>
-      <div class="nav-item" data-page="guard-logs" onclick="navigate('guard-logs',this)">
-        <span class="nav-icon">📜</span><span class="sidebar-label">Guard Logları</span>
-      </div>
-
-      <div class="sidebar-section-title">📊 LOG & ANALİZ</div>
       <div class="nav-item" data-page="logs" onclick="navigate('logs',this)">
-        <span class="nav-icon">📋</span><span class="sidebar-label">Tüm Loglar</span>
-      </div>
-      <div class="nav-item" data-page="banaff-logs" onclick="navigate('banaff-logs',this)">
-        <span class="nav-icon">📝</span><span class="sidebar-label">Ban Affı Logları</span>
-      </div>
-
-      <div class="sidebar-section-title">⚙️ AYARLAR</div>
-      <div class="nav-item" data-page="settings" onclick="navigate('settings',this)">
-        <span class="nav-icon">⚙️</span><span class="sidebar-label">Sistem Ayarları</span>
+        <span class="nav-icon">📋</span><span class="sidebar-label">Loglar</span>
       </div>
     </nav>
-    <div class="sidebar-bottom">
-      <div class="collapse-btn" onclick="toggleSidebar()">
-        <span class="collapse-icon">◀</span>
-        <span class="sidebar-label">Daralt</span>
-      </div>
-    </div>
   </aside>
 
   <!-- MAIN -->
   <div class="main" id="main">
     <div class="topbar">
-      <button class="burger-btn" onclick="toggleMobileSidebar()">☰</button>
       <span class="topbar-title" id="topbar-title">Dashboard</span>
       <div class="topbar-actions">
         <div class="status-dot" id="bot-status-dot"></div>
@@ -657,395 +561,160 @@ input:checked + .slider:before { transform: translateX(18px); }
 
     <div class="page-content">
 
-      <!-- DASHBOARD: GENEL BAKIŞ -->
+      <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
         <div class="page-header">
           <h1>Dashboard</h1>
           <p>Sunucu ve bot durumunun genel görünümü</p>
         </div>
         <div class="grid grid-4">
-          <div class="stat-card led-border"><div class="stat-value" id="dash-players">—</div><div class="stat-label">Online Oyuncu</div></div>
-          <div class="stat-card led-border"><div class="stat-value" id="dash-uptime">—</div><div class="stat-label">Bot Uptime</div></div>
-          <div class="stat-card led-border"><div class="stat-value" id="dash-staff">—</div><div class="stat-label">Yetkili Sayısı</div></div>
-          <div class="stat-card led-border"><div class="stat-value" id="dash-banaff">—</div><div class="stat-label">Ban Affı Talebi</div></div>
-        </div>
-        <div class="grid grid-2" style="margin-top:16px">
-          <div class="card"><h3 style="font-size:14px;margin-bottom:12px">📊 Aktif Etkinlikler</h3><div id="dash-events"></div></div>
-          <div class="card"><h3 style="font-size:14px;margin-bottom:12px">📋 Son Loglar</h3><div id="dash-logs" style="font-size:12px;color:var(--text2)"></div></div>
+          <div class="stat-card led-border">
+            <div class="stat-value" id="dash-players">—</div>
+            <div class="stat-label">Online Oyuncu</div>
+          </div>
+          <div class="stat-card led-border">
+            <div class="stat-value" id="dash-uptime">—</div>
+            <div class="stat-label">Bot Uptime</div>
+          </div>
+          <div class="stat-card led-border">
+            <div class="stat-value" id="dash-staff">—</div>
+            <div class="stat-label">Yetkili Sayısı</div>
+          </div>
+          <div class="stat-card led-border">
+            <div class="stat-value" id="dash-banaff">—</div>
+            <div class="stat-label">Ban Affı Talebi</div>
+          </div>
         </div>
       </div>
 
-      <!-- DASHBOARD: BOT DURUMU -->
-      <div class="page" id="page-bot-status">
-        <div class="page-header"><h1>Bot Durumu</h1><p>Botun güncel durumu ve istatistikleri</p></div>
-        <div class="grid grid-3">
-          <div class="stat-card"><div class="stat-value" id="bot-status-online">—</div><div class="stat-label">Durum</div></div>
-          <div class="stat-card"><div class="stat-value" id="bot-status-guilds">—</div><div class="stat-label">Sunucu Sayısı</div></div>
-          <div class="stat-card"><div class="stat-value" id="bot-status-users">—</div><div class="stat-label">Kullanıcı Sayısı</div></div>
+      <!-- SEND PANEL (PANEL GÖNDERME KONSOLU) -->
+      <div class="page" id="page-send-panel">
+        <div class="page-header">
+          <h1>Discord Panel Gönder</h1>
+          <p>Seçtiğiniz paneli belirlediğiniz Discord kanalına anında butonlu/embed olarak gönderin</p>
         </div>
-        <div class="card"><div id="bot-status-detail" style="font-size:13px;color:var(--text2)"></div></div>
+        <div class="card" style="max-width:600px">
+          <div style="margin-bottom:14px">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">PANEL TÜRÜ</label>
+            <select id="panel-type" onchange="updatePanelForm()">
+              <option value="ticket">Ticket / Başvuru Paneli</option>
+              <option value="banaff">Ban Affı Başvuru Paneli</option>
+              <option value="ingame">Ingame / Kadro Paneli</option>
+              <option value="etkinlik">Etkinlik Paneli</option>
+              <option value="aktiflik">Aktiflik Testi Paneli</option>
+            </select>
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">GÖNDERİLECEK DISCORD KANALI</label>
+            <select id="panel-channel"><option value="">Yükleniyor...</option></select>
+          </div>
+          <div style="margin-bottom:14px" id="panel-title-wrap">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">PANEL BAŞLIĞI / BUTON YAZISI</label>
+            <input type="text" id="panel-title" placeholder="Başvuru Yap">
+          </div>
+          <div style="margin-bottom:14px;display:none" id="panel-limit-wrap">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">KONTENJAN / LİMİT</label>
+            <input type="number" id="panel-limit" value="10">
+          </div>
+          <div style="margin-bottom:14px;display:none" id="panel-duration-wrap">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">SÜRE (Örn: 30dk, 2sa)</label>
+            <input type="text" id="panel-duration" placeholder="30dk">
+          </div>
+          <div style="margin-bottom:14px;display:none" id="panel-role-wrap">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">ETİKETLENECEK ROL</label>
+            <select id="panel-role"><option value="">Rol Seçiniz...</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="submitSendPanel()">🚀 Discord Kanalına Gönder</button>
+        </div>
       </div>
 
-      <!-- DISCORD: ÜYE YÖNETİMİ -->
+      <!-- PLAYERS (FIVEM) -->
+      <div class="page" id="page-players">
+        <div class="page-header">
+          <h1>FiveM Oyuncuları</h1>
+          <p>Sunucuda bağlı olan oyuncular</p>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>ID</th><th>İSİM</th><th>PİNG</th><th>DİSCORD</th><th>AKSİYONLAR</th></tr>
+              </thead>
+              <tbody id="players-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- DISCORD MEMBERS -->
       <div class="page" id="page-members">
-        <div class="page-header"><h1>Üye Yönetimi</h1><p>Discord üyelerini arayın ve yönetin</p></div>
+        <div class="page-header">
+          <h1>Discord Üyeleri</h1>
+          <p>Discord üyelerini arayın ve yönetin</p>
+        </div>
         <div class="card">
           <div class="toolbar">
-            <input type="text" id="member-search-input" placeholder="Tag veya ID ara..." style="width:250px">
+            <input type="text" id="member-search-input" placeholder="Tag veya ID..." style="width:250px">
             <button class="btn btn-primary" onclick="searchMembers()">Ara</button>
           </div>
-          <div class="table-wrap"><table><thead><tr><th>Kullanıcı</th><th>ID</th><th>Katılım</th><th>Roller</th><th>İşlemler</th></tr></thead><tbody id="members-tbody"></tbody></table></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>KULLANICI</th><th>ID</th><th>KATILIM</th><th>AKSİYONLAR</th></tr>
+              </thead>
+              <tbody id="members-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- DISCORD: BAN YÖNETİMİ -->
+      <!-- BANS -->
       <div class="page" id="page-bans">
-        <div class="page-header"><h1>Ban Yönetimi</h1><p>Aktif banları görüntüleyin ve yönetin</p></div>
+        <div class="page-header"><h1>Aktif Banlar</h1></div>
         <div class="card">
-          <div class="toolbar"><button class="btn btn-secondary btn-sm" onclick="loadBans()">🔄 Yenile</button></div>
-          <div class="table-wrap"><table><thead><tr><th>Kullanıcı</th><th>ID</th><th>Sebep</th><th>İşlemler</th></tr></thead><tbody id="bans-tbody"></tbody></table></div>
-        </div>
-      </div>
-
-      <!-- DISCORD: KICK YÖNETİMİ -->
-      <div class="page" id="page-kicks">
-        <div class="page-header"><h1>Kick Yönetimi</h1><p>Kullanıcıları sunucudan atın</p></div>
-        <div class="card">
-          <div class="toolbar">
-            <input type="text" id="kick-user-input" placeholder="Kullanıcı ID" style="width:200px">
-            <input type="text" id="kick-reason-input" placeholder="Sebep" style="width:200px">
-            <button class="btn btn-danger" onclick="kickUser()">🚪 Kickle</button>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>KULLANICI</th><th>ID</th><th>SEBEP</th><th>İŞLEM</th></tr></thead>
+              <tbody id="bans-tbody"></tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      <!-- DISCORD: TIMEOUT YÖNETİMİ -->
-      <div class="page" id="page-timeouts">
-        <div class="page-header"><h1>Timeout Yönetimi</h1><p>Kullanıcılara timeout uygulayın</p></div>
-        <div class="card">
-          <div class="toolbar">
-            <input type="text" id="timeout-user-input" placeholder="Kullanıcı ID" style="width:200px">
-            <input type="number" id="timeout-minutes-input" placeholder="Dakika" style="width:100px">
-            <input type="text" id="timeout-reason-input" placeholder="Sebep" style="width:200px">
-            <button class="btn btn-yellow" onclick="applyTimeout()">⏳ Uygula</button>
-          </div>
-          <div style="margin-top:12px"><h4>Geçmiş Timeoutlar</h4><div id="timeout-history" style="font-size:12px;color:var(--text2);max-height:200px;overflow-y:auto"></div></div>
+      <!-- TEAM -->
+      <div class="page" id="page-team">
+        <div class="page-header"><h1>Ekip / Kadro</h1></div>
+        <div id="team-grid" class="grid grid-3"></div>
+      </div>
+
+      <!-- EVENTS -->
+      <div class="page" id="page-events">
+        <div class="page-header"><h1>Etkinlikler</h1></div>
+        <div id="events-grid" class="grid grid-3"></div>
+      </div>
+
+      <!-- BAN AFFI -->
+      <div class="page" id="page-banaff">
+        <div class="page-header"><h1>Ban Affı Talepleri</h1></div>
+        <div class="toolbar">
+          <button class="btn btn-danger" onclick="resetAllBanAffs()">🗑️ Tümünü Temizle</button>
         </div>
+        <div class="card"><div id="banaff-list"></div></div>
       </div>
 
-      <!-- DISCORD: ROL YÖNETİMİ -->
-      <div class="page" id="page-roles">
-        <div class="page-header"><h1>Rol Yönetimi</h1><p>Kullanıcılara rol ekleyin veya çıkarın</p></div>
-        <div class="card">
-          <div class="toolbar">
-            <input type="text" id="role-user-input" placeholder="Kullanıcı ID" style="width:200px">
-            <select id="role-select" style="width:200px"></select>
-            <button class="btn btn-success" onclick="addRole()">➕ Ekle</button>
-            <button class="btn btn-danger" onclick="removeRole()">➖ Çıkar</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- DISCORD: DM GÖNDERİMİ -->
-      <div class="page" id="page-dm">
-        <div class="page-header"><h1>DM Gönderimi</h1><p>Belirtilen role özel mesaj gönderin</p></div>
-        <div class="card">
-          <div class="toolbar">
-            <select id="dm-role-select" style="width:200px"></select>
-          </div>
-          <textarea id="dm-message-input" placeholder="Mesajınız..." rows="4"></textarea>
-          <button class="btn btn-primary" onclick="sendDM()" style="margin-top:12px">📬 Gönder</button>
-          <div style="margin-top:12px"><h4>Geçmiş DM'ler</h4><div id="dm-history" style="font-size:12px;color:var(--text2);max-height:200px;overflow-y:auto"></div></div>
-        </div>
-      </div>
-
-      <!-- DISCORD: SES YÖNETİMİ -->
-      <div class="page" id="page-voice">
-        <div class="page-header"><h1>Ses Yönetimi</h1><p>Ses kanallarını yönetin</p></div>
-        <div class="grid grid-2">
-          <div class="card">
-            <h3 style="font-size:14px;margin-bottom:12px">Ses Yasağı</h3>
-            <div class="toolbar">
-              <input type="text" id="voice-user-input" placeholder="Kullanıcı ID" style="width:200px">
-              <button class="btn btn-danger" onclick="blockVoice()">🔇 Yasakla</button>
-              <button class="btn btn-success" onclick="unblockVoice()">🔊 Yasak Kaldır</button>
-            </div>
-            <div id="voice-blocked-list" style="font-size:12px;color:var(--text2);margin-top:12px"></div>
-          </div>
-          <div class="card">
-            <h3 style="font-size:14px;margin-bottom:12px">Toplu İşlemler</h3>
-            <div class="toolbar" style="flex-wrap:wrap">
-              <input type="text" id="voice-channel-id" placeholder="Kanal ID" style="width:150px">
-              <button class="btn btn-secondary btn-sm" onclick="muteAll()">🔇 Mute All</button>
-              <button class="btn btn-secondary btn-sm" onclick="unmuteAll()">🔊 Unmute All</button>
-              <button class="btn btn-secondary btn-sm" onclick="moveAll()">🚚 Taşı</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- FIVEM: ONLINE OYUNCULAR -->
-      <div class="page" id="page-fivem-players">
-        <div class="page-header"><h1>FiveM Online Oyuncular</h1><p>Sunucuda bağlı olan oyuncular</p></div>
-        <div class="card">
-          <div class="toolbar"><button class="btn btn-secondary btn-sm" onclick="loadFiveMPlayers()">🔄 Yenile</button><span id="fivem-player-count" style="color:var(--text3);font-size:13px"></span></div>
-          <div class="table-wrap"><table><thead><tr><th>ID</th><th>İsim</th><th>Ping</th><th>Discord</th><th>Steam</th><th>İşlemler</th></tr></thead><tbody id="fivem-players-tbody"></tbody></table></div>
-        </div>
-      </div>
-
-      <!-- FIVEM: OYUNCU ARA -->
-      <div class="page" id="page-fivem-search">
-        <div class="page-header"><h1>FiveM Oyuncu Ara</h1><p>Oyuncu ismi veya ID ile arayın</p></div>
-        <div class="card">
-          <div class="toolbar">
-            <input type="text" id="fivem-search-input" placeholder="İsim veya ID" style="width:250px">
-            <button class="btn btn-primary" onclick="searchFiveMPlayer()">🔍 Ara</button>
-          </div>
-          <div id="fivem-search-results" style="margin-top:16px"></div>
-        </div>
-      </div>
-
-      <!-- PANELLER: TICKET -->
-      <div class="page" id="page-panel-ticket">
-        <div class="page-header"><h1>Ticket Paneli</h1><p>Discord kanalına ticket paneli gönderin</p></div>
-        <div class="card" style="max-width:600px">
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">KANAL</label>
-            <select id="ticket-channel" style="width:100%"></select>
-          </div>
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">BUTON YAZISI</label>
-            <input type="text" id="ticket-title" placeholder="Başvuru Yap" value="Başvuru Yap">
-          </div>
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">AÇIKLAMA</label>
-            <textarea id="ticket-description" rows="2">Formu doldurduktan sonra bekleyiniz, en kısa sürede ilgilenilecektir.</textarea>
-          </div>
-          <button class="btn btn-primary" onclick="sendTicketPanel()">📤 Gönder</button>
-        </div>
-      </div>
-
-      <!-- PANELLER: BAN AFFI -->
-      <div class="page" id="page-panel-banaff">
-        <div class="page-header"><h1>Ban Affı Paneli</h1><p>Discord kanalına ban affı paneli gönderin</p></div>
-        <div class="card" style="max-width:600px">
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">KANAL</label>
-            <select id="banaff-channel" style="width:100%"></select>
-          </div>
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">AÇIKLAMA</label>
-            <textarea id="banaff-description" rows="2">Banlı olup ban affı isteyen kişiler butona tıklayabilir.</textarea>
-          </div>
-          <button class="btn btn-primary" onclick="sendBanAffPanel()">📤 Gönder</button>
-        </div>
-      </div>
-
-      <!-- PANELLER: INGAME -->
-      <div class="page" id="page-panel-ingame">
-        <div class="page-header"><h1>Ingame Paneli</h1><p>Discord kanalına kadro paneli gönderin</p></div>
-        <div class="card" style="max-width:600px">
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">KANAL</label>
-            <select id="ingame-channel" style="width:100%"></select>
-          </div>
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">BAŞLIK</label>
-            <input type="text" id="ingame-title" placeholder="Kadro Paneli" value="Kadro Paneli">
-          </div>
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">LİMİT</label>
-            <input type="number" id="ingame-limit" value="10">
-          </div>
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">SÜRE (Örn: 30dk, 2sa)</label>
-            <input type="text" id="ingame-duration" placeholder="30dk">
-          </div>
-          <button class="btn btn-primary" onclick="sendIngamePanel()">📤 Gönder</button>
-        </div>
-      </div>
-
-      <!-- PANELLER: ETKİNLİK -->
-      <div class="page" id="page-panel-etkinlik">
-        <div class="page-header"><h1>Etkinlik Paneli</h1><p>Discord kanalına etkinlik paneli gönderin</p></div>
-        <div class="card" style="max-width:600px">
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">KANAL</label>
-            <select id="etkinlik-channel" style="width:100%"></select>
-          </div>
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">BAŞLIK</label>
-            <input type="text" id="etkinlik-title" placeholder="Etkinlik" value="Etkinlik">
-          </div>
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">KONTENJAN</label>
-            <input type="number" id="etkinlik-limit" value="10">
-          </div>
-          <button class="btn btn-primary" onclick="sendEtkinlikPanel()">📤 Gönder</button>
-        </div>
-      </div>
-
-      <!-- PANELLER: AKTİFLİK -->
-      <div class="page" id="page-panel-aktiflik">
-        <div class="page-header"><h1>Aktiflik Paneli</h1><p>Discord kanalına aktiflik testi paneli gönderin</p></div>
-        <div class="card" style="max-width:600px">
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">KANAL</label>
-            <select id="aktiflik-channel" style="width:100%"></select>
-          </div>
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">ROL</label>
-            <select id="aktiflik-role" style="width:100%"></select>
-          </div>
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">SÜRE (Örn: 30dk, 2sa)</label>
-            <input type="text" id="aktiflik-duration" placeholder="30dk" value="30dk">
-          </div>
-          <button class="btn btn-primary" onclick="sendAktiflikPanel()">📤 Gönder</button>
-        </div>
-      </div>
-
-      <!-- EKİP: EKİP ÜYELERİ -->
-      <div class="page" id="page-team-members">
-        <div class="page-header"><h1>Ekip Üyeleri</h1><p>Ekip üyelerinin listesi ve durumları</p></div>
-        <div class="card"><div id="team-members-list" style="font-size:13px"></div></div>
-      </div>
-
-      <!-- EKİP: STAFF YÖNETİMİ -->
-      <div class="page" id="page-team-staff">
-        <div class="page-header"><h1>Staff Yönetimi</h1><p>Bot yetkililerini yönetin</p></div>
-        <div class="card">
-          <div class="toolbar">
-            <input type="text" id="staff-user-input" placeholder="Kullanıcı ID" style="width:200px">
-            <button class="btn btn-success" onclick="addStaff()">➕ Ekle</button>
-            <button class="btn btn-danger" onclick="removeStaff()">➖ Kaldır</button>
-          </div>
-          <div id="staff-list" style="margin-top:12px;font-size:13px"></div>
-        </div>
-      </div>
-
-      <!-- EKİP: OT YÖNETİMİ -->
-      <div class="page" id="page-team-ot">
-        <div class="page-header"><h1>OT Yönetimi</h1><p>OT (Özel Tüccar) sistemini yönetin</p></div>
-        <div class="card">
-          <div class="toolbar">
-            <input type="text" id="ot-user-input" placeholder="Kullanıcı ID" style="width:200px">
-            <input type="number" id="ot-amount-input" placeholder="Miktar" style="width:100px">
-            <button class="btn btn-success" onclick="addOT()">➕ Ekle</button>
-            <button class="btn btn-danger" onclick="resetOT()">🔄 Sıfırla</button>
-          </div>
-          <div style="margin-top:12px"><h4>OT Yetkilileri</h4>
-            <div class="toolbar">
-              <input type="text" id="ot-auth-user-input" placeholder="Kullanıcı ID" style="width:200px">
-              <button class="btn btn-success btn-sm" onclick="addOTAuth()">➕ Yetki Ekle</button>
-              <button class="btn btn-danger btn-sm" onclick="removeOTAuth()">➖ Yetki Kaldır</button>
-            </div>
-            <div id="ot-auth-list" style="font-size:12px;color:var(--text2)"></div>
-          </div>
-          <div style="margin-top:12px"><h4>OT Sıralaması</h4><div id="ot-ranking" style="font-size:13px;max-height:300px;overflow-y:auto"></div></div>
-        </div>
-      </div>
-
-      <!-- EKİP: AKTİVİTE İSTATİSTİKLERİ -->
-      <div class="page" id="page-team-activity">
-        <div class="page-header"><h1>Aktivite İstatistikleri</h1><p>Ekip üyelerinin aktivite durumları</p></div>
-        <div class="card">
-          <div class="table-wrap"><table><thead><tr><th>Kullanıcı</th><th>Son Mesaj</th><th>Son Ses</th><th>Ingame Katılım</th></tr></thead><tbody id="activity-tbody"></tbody></table></div>
-        </div>
-      </div>
-
-      <!-- GÜVENLİK: GUARD SİSTEMLERİ -->
+      <!-- GUARD -->
       <div class="page" id="page-guard">
-        <div class="page-header"><h1>Guard Sistemleri</h1><p>Guard koruma sistemlerini yönetin</p></div>
+        <div class="page-header"><h1>Guard Sistemi</h1></div>
         <div class="grid grid-2">
-          <div class="card">
-            <h3 style="font-size:14px;margin-bottom:12px">🛡️ Sistemler</h3>
-            <div id="guard-items"></div>
-            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-              <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
-                <span>Genel Guard</span>
-                <label class="switch"><input type="checkbox" id="guard-general-toggle" onchange="toggleGuardGeneral()"><span class="slider"></span></label>
-              </label>
-            </div>
-          </div>
-          <div class="card">
-            <h3 style="font-size:14px;margin-bottom:12px">⚙️ Limitler</h3>
-            <div id="guard-limits"></div>
-            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-              <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">PENCERE (Dakika)</label>
-              <input type="number" id="guard-window" style="width:100px" onchange="saveGuardWindow()">
-            </div>
-          </div>
-        </div>
-        <div class="card" style="margin-top:16px">
-          <h3 style="font-size:14px;margin-bottom:12px">📋 Whitelist</h3>
-          <div class="toolbar">
-            <input type="text" id="whitelist-input" placeholder="Kullanıcı ID" style="width:200px">
-            <button class="btn btn-success btn-sm" onclick="addWhitelist()">➕ Ekle</button>
-            <button class="btn btn-danger btn-sm" onclick="removeWhitelist()">➖ Kaldır</button>
-          </div>
-          <div id="whitelist-list" style="font-size:12px;color:var(--text2);margin-top:8px"></div>
+          <div class="card"><h3>🛡️ Sistemler</h3><div id="guard-items"></div></div>
+          <div class="card"><h3>⚙️ Limitler</h3><div id="guard-limits"></div></div>
         </div>
       </div>
 
-      <!-- GÜVENLİK: GUARD LOGLARI -->
-      <div class="page" id="page-guard-logs">
-        <div class="page-header"><h1>Guard Logları</h1><p>Guard sistemi tarafından kaydedilen tüm olaylar</p></div>
-        <div class="card"><div id="guard-logs-list" style="font-size:12px;max-height:500px;overflow-y:auto"></div></div>
-      </div>
-
-      <!-- LOGLAR: TÜM LOGLAR -->
+      <!-- LOGS -->
       <div class="page" id="page-logs">
-        <div class="page-header"><h1>Tüm Loglar</h1><p>Bot tarafından kaydedilen tüm işlem logları</p></div>
-        <div class="card">
-          <div class="toolbar">
-            <select id="log-filter" onchange="loadLogs()"><option value="">Tüm Kategoriler</option></select>
-          </div>
-          <div id="logs-list" style="font-size:12px;max-height:500px;overflow-y:auto"></div>
-        </div>
-      </div>
-
-      <!-- LOGLAR: BAN AFFI LOGLARI -->
-      <div class="page" id="page-banaff-logs">
-        <div class="page-header"><h1>Ban Affı Logları</h1><p>Ban affı başvuruları ve işlemleri</p></div>
-        <div class="card">
-          <div class="toolbar">
-            <button class="btn btn-danger btn-sm" onclick="resetAllBanAffs()">🗑️ Tümünü Temizle</button>
-          </div>
-          <div id="banaff-logs-list" style="font-size:13px"></div>
-        </div>
-      </div>
-
-      <!-- AYARLAR -->
-      <div class="page" id="page-settings">
-        <div class="page-header"><h1>Sistem Ayarları</h1><p>Bot ve panel ayarlarını yönetin</p></div>
-        <div class="grid grid-2">
-          <div class="card">
-            <h3 style="font-size:14px;margin-bottom:12px">🤖 Bot Ayarları</h3>
-            <div style="display:flex;flex-direction:column;gap:12px">
-              <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
-                <span>Bakım Modu</span>
-                <label class="switch"><input type="checkbox" id="setting-maintenance" onchange="saveSetting('maintenance')"><span class="slider"></span></label>
-              </label>
-              <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
-                <span>URL Koruması</span>
-                <label class="switch"><input type="checkbox" id="setting-url-protection" onchange="saveSetting('urlProtection')"><span class="slider"></span></label>
-              </label>
-              <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
-                <span>Webhook Koruması</span>
-                <label class="switch"><input type="checkbox" id="setting-webhook-protection" onchange="saveSetting('webhookProtection')"><span class="slider"></span></label>
-              </label>
-            </div>
-          </div>
-          <div class="card">
-            <h3 style="font-size:14px;margin-bottom:12px">⚙️ FiveM Ayarları</h3>
-            <div style="margin-bottom:12px">
-              <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">CFX KODU</label>
-              <input type="text" id="setting-cfx" placeholder="xjx5kr" style="width:100%">
-              <button class="btn btn-primary btn-sm" onclick="saveCFX()" style="margin-top:8px">Kaydet</button>
-            </div>
-          </div>
-        </div>
+        <div class="page-header"><h1>Loglar</h1></div>
+        <div class="card"><div id="logs-list"></div></div>
       </div>
 
     </div>
@@ -1053,12 +722,34 @@ input:checked + .slider:before { transform: translateX(18px); }
 </div>
 
 <script>
-// ===================== UTILS & TOAST =====================
+// PARTICLES
+(function(){
+  const c = document.getElementById('particles-canvas');
+  const ctx = c.getContext('2d');
+  let W, H, pts = [];
+  function resize(){ W = c.width = window.innerWidth; H = c.height = window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  for(let i=0;i<40;i++) pts.push({ x:Math.random()*2000, y:Math.random()*2000, vx:(Math.random()-0.5)*0.15, vy:(Math.random()-0.5)*0.15, r:Math.random()*1.5+0.3 });
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// UTILS & TOAST
 function showToast(msg, type='success'){
   const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  toast.innerHTML = `<span>${type==='success'?'✅':type==='error'?'⚠️':'ℹ️'}</span> <span>${msg}</span>`;
+  toast.innerHTML = `<span>${type==='success'?'✅':'⚠️'}</span> <span>${msg}</span>`;
   container.appendChild(toast);
   setTimeout(()=> toast.remove(), 4000);
 }
@@ -1085,6 +776,22 @@ document.getElementById('confirm-btn').addEventListener('click', ()=>{
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
+let currentPage = 'dashboard';
+function navigate(id, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id)?.classList.add('active');
+  if(el) el.classList.add('active');
+  currentPage = id;
+  
+  if(id==='players') loadPlayers();
+  else if(id==='send-panel') loadChannelsAndRoles();
+  else if(id==='bans') loadBans();
+  else if(id==='banaff') loadBanAff();
+  else if(id==='guard') loadGuard();
+  else if(id==='logs') loadLogs();
+}
+
 async function apiFetch(path, method='GET', body=null){
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if(body) opts.body = JSON.stringify(body);
@@ -1094,122 +801,91 @@ async function apiFetch(path, method='GET', body=null){
   return data;
 }
 
-// ===================== SIDEBAR =====================
-let currentPage = 'dashboard';
-let sidebarCollapsed = false;
+// PANEL SİSTEMLERİ FORM
+async function loadChannelsAndRoles(){
+  try {
+    const chData = await apiFetch('/api/discord/channels');
+    const chSelect = document.getElementById('panel-channel');
+    chSelect.innerHTML = chData.channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
 
-function navigate(id, el) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.getElementById('page-'+id)?.classList.add('active');
-  if(el) el.classList.add('active');
-  currentPage = id;
-  document.getElementById('topbar-title').textContent = document.querySelector(`.nav-item[data-page="${id}"] .sidebar-label`)?.textContent || id;
-  
-  // Sayfa yükleme fonksiyonları
-  const loaders = {
-    'dashboard': loadDashboard,
-    'bot-status': loadBotStatus,
-    'members': loadMembers,
-    'bans': loadBans,
-    'kicks': ()=>{},
-    'timeouts': loadTimeouts,
-    'roles': loadRoles,
-    'dm': loadDMHistory,
-    'voice': loadVoiceBlocked,
-    'fivem-players': loadFiveMPlayers,
-    'fivem-search': ()=>{},
-    'panel-ticket': loadChannels,
-    'panel-banaff': loadChannels,
-    'panel-ingame': loadChannels,
-    'panel-etkinlik': loadChannels,
-    'panel-aktiflik': loadChannelsAndRoles,
-    'team-members': loadTeamMembers,
-    'team-staff': loadStaff,
-    'team-ot': loadOT,
-    'team-activity': loadActivity,
-    'guard': loadGuard,
-    'guard-logs': loadGuardLogs,
-    'logs': loadLogs,
-    'banaff-logs': loadBanAffLogs,
-    'settings': loadSettings
-  };
-  if(loaders[id]) loaders[id]();
+    const roleData = await apiFetch('/api/discord/roles');
+    const roleSelect = document.getElementById('panel-role');
+    roleSelect.innerHTML = '<option value="">Etiketleme Yok</option>' + roleData.roles.map(r => `<option value="${r.id}">@${r.name}</option>`).join('');
+  } catch(e){}
 }
 
-function toggleSidebar(){
-  sidebarCollapsed = !sidebarCollapsed;
-  document.getElementById('sidebar').classList.toggle('collapsed');
-  document.getElementById('main').classList.toggle('collapsed');
+function updatePanelForm(){
+  const type = document.getElementById('panel-type').value;
+  document.getElementById('panel-limit-wrap').style.display = (type === 'ingame' || type === 'etkinlik') ? 'block' : 'none';
+  document.getElementById('panel-duration-wrap').style.display = (type === 'ingame' || type === 'aktiflik') ? 'block' : 'none';
+  document.getElementById('panel-role-wrap').style.display = (type === 'aktiflik') ? 'block' : 'none';
 }
 
-function toggleMobileSidebar(){
-  document.getElementById('sidebar').classList.toggle('mobile-open');
+async function submitSendPanel(){
+  try {
+    const body = {
+      panelType: document.getElementById('panel-type').value,
+      channelId: document.getElementById('panel-channel').value,
+      title: document.getElementById('panel-title').value,
+      limit: document.getElementById('panel-limit').value,
+      duration: document.getElementById('panel-duration').value,
+      roleId: document.getElementById('panel-role').value
+    };
+    await apiFetch('/api/admin/send-panel', 'POST', body);
+    showToast('Panel Discord kanalına başarıyla gönderildi!');
+  } catch(e){ showToast(e.message, 'error'); }
 }
 
-// ===================== DASHBOARD =====================
+// DASHBOARD
 async function loadDashboard(){
-  try {
-    const d = await apiFetch('/api/dashboard');
-    document.getElementById('dash-players').textContent = d.fivem.playerCount;
-    document.getElementById('dash-uptime').textContent = d.bot.uptime;
-    document.getElementById('dash-staff').textContent = d.stats.staffCount;
-    document.getElementById('dash-banaff').textContent = d.stats.banAffCount;
-    document.getElementById('dash-events').innerHTML = `
-      Ingame: ${d.stats.activeIngame} | Etkinlik: ${d.stats.activeEtkinlik} | Aktiflik: ${d.stats.activeAktiflik}
-    `;
-    document.getElementById('dash-logs').innerHTML = d.recentLogs.map(l => 
-      `<div style="padding:4px 0;border-bottom:1px solid var(--border)">[${l.category}] ${l.action} — ${l.detail}</div>`
-    ).join('');
-    document.getElementById('bot-status-dot').className = 'status-dot' + (d.bot.online ? '' : ' offline');
-    document.getElementById('topbar-uptime').textContent = d.bot.uptime;
-    document.getElementById('topbar-ping').textContent = d.bot.ping + 'ms';
-  } catch(e){}
+  try{
+    const d=await apiFetch('/api/dashboard');
+    document.getElementById('dash-players').textContent=d.fivem.playerCount;
+    document.getElementById('dash-uptime').textContent=d.bot.uptime;
+    document.getElementById('dash-staff').textContent=d.stats.staffCount;
+    document.getElementById('dash-banaff').textContent=d.stats.banAffCount;
+  }catch(e){}
 }
 
-// ===================== BOT STATUS =====================
-async function loadBotStatus(){
-  try {
-    const d = await apiFetch('/api/bot/status');
-    document.getElementById('bot-status-online').textContent = d.online ? '✅ Çevrimiçi' : '❌ Çevrimdışı';
-    document.getElementById('bot-status-guilds').textContent = d.guilds;
-    document.getElementById('bot-status-users').textContent = d.users;
-    document.getElementById('bot-status-detail').innerHTML = `
-      <div>Uptime: ${Math.floor(d.uptime / 86400000)}g ${Math.floor((d.uptime % 86400000) / 3600000)}sa ${Math.floor((d.uptime % 3600000) / 60000)}dk</div>
-      <div>Ping: ${d.ping}ms</div>
-      <div>Bakım Modu: ${d.maintenance ? 'Açık' : 'Kapalı'}</div>
-      <div>URL Koruması: ${d.urlProtection ? 'Açık' : 'Kapalı'}</div>
-      <div>Webhook Koruması: ${d.webhookProtection ? 'Açık' : 'Kapalı'}</div>
-      <div>Ses Bağlantısı: ${d.voiceConnections ? 'Bağlı' : 'Bağlı Değil'}</div>
-    `;
-  } catch(e){}
+// PLAYERS
+async function loadPlayers(){
+  try{
+    const d=await apiFetch('/api/fivem/players');
+    document.getElementById('players-tbody').innerHTML = (d.players||[]).map(p=>`
+      <tr>
+        <td>${p.id}</td>
+        <td><strong>${p.name}</strong></td>
+        <td>${p.ping}ms</td>
+        <td>${p.discord||'—'}</td>
+        <td>
+          ${p.discord ? `<button class="btn btn-danger btn-sm" onclick="promptBan('${p.discord}')">Ban</button>
+          <button class="btn btn-secondary btn-sm" onclick="promptKick('${p.discord}')">Kick</button>` : '—'}
+        </td>
+      </tr>
+    `).join('');
+  }catch(e){}
 }
 
-// ===================== MEMBERS =====================
-async function loadMembers(){
-  await searchMembers();
-}
-
+// DISCORD MEMBERS
 async function searchMembers(){
   const q = document.getElementById('member-search-input').value.trim();
-  try {
+  try{
     const d = await apiFetch(`/api/members?q=${encodeURIComponent(q)}`);
     document.getElementById('members-tbody').innerHTML = d.members.map(m => `
       <tr>
         <td><strong>${m.tag}</strong></td>
-        <td><code class="mono">${m.id}</code></td>
+        <td><code>${m.id}</code></td>
         <td>${new Date(m.joinedAt).toLocaleDateString('tr-TR')}</td>
-        <td>${m.roles.slice(0,3).map(r => `<span class="badge badge-gray">${r.name}</span>`).join(' ')}${m.roles.length > 3 ? ` +${m.roles.length-3}` : ''}</td>
         <td>
-          <button class="btn btn-danger btn-xs" onclick="promptBan('${m.id}')">Ban</button>
-          <button class="btn btn-secondary btn-xs" onclick="promptKick('${m.id}')">Kick</button>
-          <button class="btn btn-yellow btn-xs" onclick="promptTimeout('${m.id}')">Timeout</button>
+          <button class="btn btn-danger btn-sm" onclick="promptBan('${m.id}')">Ban</button>
+          <button class="btn btn-secondary btn-sm" onclick="promptKick('${m.id}')">Kick</button>
         </td>
       </tr>
     `).join('');
-  } catch(e){ showToast(e.message, 'error'); }
+  }catch(e){ showToast(e.message, 'error'); }
 }
 
+// BANS & PROMPTS
 function promptBan(userId){
   openConfirmModal({
     title: 'Kullanıcıyı Banla',
@@ -1217,7 +893,6 @@ function promptBan(userId){
     onConfirm: async (reason) => {
       await apiFetch('/api/admin/ban', 'POST', { userId, reason });
       showToast('Kullanıcı banlandı');
-      loadBans();
     }
   });
 }
@@ -1233,30 +908,15 @@ function promptKick(userId){
   });
 }
 
-function promptTimeout(userId){
-  openConfirmModal({
-    title: 'Timeout Uygula',
-    body: `${userId} ID'li kullanıcıya timeout uygulanacak.`,
-    onConfirm: async (reason) => {
-      const minutes = prompt('Kaç dakika timeout?', '5');
-      if(!minutes) return;
-      await apiFetch('/api/admin/timeout', 'POST', { userId, minutes: parseInt(minutes), reason });
-      showToast('Timeout uygulandı');
-      loadTimeouts();
-    }
-  });
-}
-
-// ===================== BANS =====================
 async function loadBans(){
   try {
     const d = await apiFetch('/api/bans');
     document.getElementById('bans-tbody').innerHTML = d.bans.map(b => `
       <tr>
         <td><strong>${b.tag}</strong></td>
-        <td><code class="mono">${b.userId}</code></td>
+        <td><code>${b.userId}</code></td>
         <td>${b.reason}</td>
-        <td><button class="btn btn-success btn-xs" onclick="unbanUser('${b.userId}')">Ban Kaldır</button></td>
+        <td><button class="btn btn-primary btn-sm" onclick="unbanUser('${b.userId}')">Ban Kaldır</button></td>
       </tr>
     `).join('');
   } catch(e){}
@@ -1268,534 +928,23 @@ async function unbanUser(userId){
   loadBans();
 }
 
-// ===================== KICK =====================
-async function kickUser(){
-  const userId = document.getElementById('kick-user-input').value.trim();
-  const reason = document.getElementById('kick-reason-input').value.trim() || 'Web Panel Kick';
-  if(!userId) return showToast('Kullanıcı ID girin!', 'error');
-  try {
-    await apiFetch('/api/admin/kick', 'POST', { userId, reason });
-    showToast('Kullanıcı atıldı');
-    document.getElementById('kick-user-input').value = '';
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-// ===================== TIMEOUT =====================
-async function loadTimeouts(){
-  try {
-    const d = await apiFetch('/api/timeouts');
-    document.getElementById('timeout-history').innerHTML = d.timeouts.map(t => `
-      <div style="padding:4px 0;border-bottom:1px solid var(--border)">${t.userId} — ${t.duration}dk — ${t.reason} (${new Date(t.timestamp).toLocaleString()})</div>
-    `).join('');
-  } catch(e){}
-}
-
-async function applyTimeout(){
-  const userId = document.getElementById('timeout-user-input').value.trim();
-  const minutes = parseInt(document.getElementById('timeout-minutes-input').value);
-  const reason = document.getElementById('timeout-reason-input').value.trim() || 'Panel Timeout';
-  if(!userId || !minutes) return showToast('Kullanıcı ID ve dakika girin!', 'error');
-  try {
-    await apiFetch('/api/admin/timeout', 'POST', { userId, minutes, reason });
-    showToast('Timeout uygulandı');
-    loadTimeouts();
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-// ===================== ROLES =====================
-async function loadRoles(){
-  try {
-    const d = await apiFetch('/api/roles');
-    const select = document.getElementById('role-select');
-    select.innerHTML = d.roles.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
-  } catch(e){}
-}
-
-async function addRole(){
-  const userId = document.getElementById('role-user-input').value.trim();
-  const roleId = document.getElementById('role-select').value;
-  if(!userId || !roleId) return showToast('Kullanıcı ID ve rol seçin!', 'error');
-  try {
-    await apiFetch('/api/admin/role/add', 'POST', { userId, roleId });
-    showToast('Rol eklendi');
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function removeRole(){
-  const userId = document.getElementById('role-user-input').value.trim();
-  const roleId = document.getElementById('role-select').value;
-  if(!userId || !roleId) return showToast('Kullanıcı ID ve rol seçin!', 'error');
-  try {
-    await apiFetch('/api/admin/role/remove', 'POST', { userId, roleId });
-    showToast('Rol çıkarıldı');
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-// ===================== DM =====================
-async function loadDMHistory(){
-  try {
-    const d = await apiFetch('/api/dm/logs');
-    document.getElementById('dm-history').innerHTML = d.logs.map(l => `
-      <div style="padding:4px 0;border-bottom:1px solid var(--border)">${l.roleName} → ${l.sent} başarılı, ${l.failed} başarısız (${new Date(l.timestamp).toLocaleString()})</div>
-    `).join('');
-  } catch(e){}
-}
-
-async function loadDMChannels(){
-  try {
-    const d = await apiFetch('/api/roles');
-    const select = document.getElementById('dm-role-select');
-    select.innerHTML = d.roles.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
-  } catch(e){}
-}
-
-async function sendDM(){
-  const roleId = document.getElementById('dm-role-select').value;
-  const message = document.getElementById('dm-message-input').value;
-  if(!roleId || !message) return showToast('Rol ve mesaj girin!', 'error');
-  try {
-    const r = await apiFetch('/api/admin/dm/send', 'POST', { roleId, message });
-    showToast(`${r.sent} kişiye DM gönderildi, ${r.failed} başarısız`);
-    loadDMHistory();
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-// ===================== VOICE =====================
-async function loadVoiceBlocked(){
-  try {
-    const d = await apiFetch('/api/voice/blocked');
-    document.getElementById('voice-blocked-list').innerHTML = d.blocked.map(id => 
-      `<span class="badge badge-red"><@${id}> (${id})</span>`
-    ).join(' ');
-  } catch(e){}
-}
-
-async function blockVoice(){
-  const userId = document.getElementById('voice-user-input').value.trim();
-  if(!userId) return showToast('Kullanıcı ID girin!', 'error');
-  try {
-    await apiFetch('/api/admin/voice/block', 'POST', { userId });
-    showToast('Ses yasağı eklendi');
-    loadVoiceBlocked();
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function unblockVoice(){
-  const userId = document.getElementById('voice-user-input').value.trim();
-  if(!userId) return showToast('Kullanıcı ID girin!', 'error');
-  try {
-    await apiFetch('/api/admin/voice/unblock', 'POST', { userId });
-    showToast('Ses yasağı kaldırıldı');
-    loadVoiceBlocked();
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function muteAll(){
-  const channelId = document.getElementById('voice-channel-id').value.trim();
-  if(!channelId) return showToast('Kanal ID girin!', 'error');
-  try {
-    const r = await apiFetch('/api/admin/voice/muteall', 'POST', { channelId });
-    showToast(`${r.muted} kişi mute edildi`);
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function unmuteAll(){
-  const channelId = document.getElementById('voice-channel-id').value.trim();
-  if(!channelId) return showToast('Kanal ID girin!', 'error');
-  try {
-    const r = await apiFetch('/api/admin/voice/unmuteall', 'POST', { channelId });
-    showToast(`${r.unmuted} kişinin mutesi açıldı`);
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function moveAll(){
-  const channelId = document.getElementById('voice-channel-id').value.trim();
-  const toChannelId = prompt('Taşınacak kanal ID:');
-  if(!channelId || !toChannelId) return showToast('Kanal ID'leri girin!', 'error');
-  try {
-    const r = await apiFetch('/api/admin/voice/moveall', 'POST', { fromChannelId: channelId, toChannelId });
-    showToast(`${r.moved} kişi taşındı`);
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-// ===================== FIVEM =====================
-async function loadFiveMPlayers(){
-  try {
-    const d = await apiFetch('/api/fivem/players');
-    document.getElementById('fivem-player-count').textContent = `${d.total}/${d.maxPlayers} oyuncu`;
-    document.getElementById('fivem-players-tbody').innerHTML = d.players.map(p => `
-      <tr>
-        <td>${p.id}</td>
-        <td><strong>${p.name}</strong></td>
-        <td>${p.ping}ms</td>
-        <td>${p.discord || '—'}</td>
-        <td>${p.steam ? p.steam.substring(0,12)+'...' : '—'}</td>
-        <td>
-          ${p.discord ? `<button class="btn btn-danger btn-xs" onclick="promptBan('${p.discord}')">Ban</button>` : '—'}
-        </td>
-      </tr>
-    `).join('');
-  } catch(e){ showToast('FiveM sunucusuna bağlanılamadı', 'error'); }
-}
-
-async function searchFiveMPlayer(){
-  const query = document.getElementById('fivem-search-input').value.trim();
-  if(!query) return showToast('Arama terimi girin!', 'error');
-  try {
-    const d = await apiFetch(`/api/fivem/search/${encodeURIComponent(query)}`);
-    document.getElementById('fivem-search-results').innerHTML = d.results.map(p => `
-      <div style="padding:8px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
-        <div><strong>${p.name}</strong> (ID: ${p.id})</div>
-        <div>Ping: ${p.ping}ms ${p.discord ? `| Discord: <@${p.discord}>` : ''}</div>
-      </div>
-    `).join('') || 'Sonuç bulunamadı.';
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-// ===================== PANELS =====================
-async function loadChannels(){
-  try {
-    const d = await apiFetch('/api/discord/channels');
-    const selects = ['ticket-channel', 'banaff-channel', 'ingame-channel', 'etkinlik-channel', 'aktiflik-channel'];
-    selects.forEach(id => {
-      const select = document.getElementById(id);
-      if(select) select.innerHTML = d.channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
-    });
-  } catch(e){}
-}
-
-async function loadChannelsAndRoles(){
-  await loadChannels();
-  try {
-    const d = await apiFetch('/api/roles');
-    const select = document.getElementById('aktiflik-role');
-    if(select) select.innerHTML = d.roles.map(r => `<option value="${r.id}">@${r.name}</option>`).join('');
-  } catch(e){}
-}
-
-async function sendTicketPanel(){
-  const channelId = document.getElementById('ticket-channel').value;
-  const title = document.getElementById('ticket-title').value;
-  const description = document.getElementById('ticket-description').value;
-  if(!channelId) return showToast('Kanal seçin!', 'error');
-  try {
-    await apiFetch('/api/admin/send-panel', 'POST', { panelType: 'ticket', channelId, title, description });
-    showToast('Ticket paneli gönderildi!');
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function sendBanAffPanel(){
-  const channelId = document.getElementById('banaff-channel').value;
-  const description = document.getElementById('banaff-description').value;
-  if(!channelId) return showToast('Kanal seçin!', 'error');
-  try {
-    await apiFetch('/api/admin/send-panel', 'POST', { panelType: 'banaff', channelId, description });
-    showToast('Ban affı paneli gönderildi!');
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function sendIngamePanel(){
-  const channelId = document.getElementById('ingame-channel').value;
-  const title = document.getElementById('ingame-title').value;
-  const limit = document.getElementById('ingame-limit').value;
-  const duration = document.getElementById('ingame-duration').value;
-  if(!channelId) return showToast('Kanal seçin!', 'error');
-  try {
-    await apiFetch('/api/admin/send-panel', 'POST', { panelType: 'ingame', channelId, title, limit, duration });
-    showToast('Ingame paneli gönderildi!');
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function sendEtkinlikPanel(){
-  const channelId = document.getElementById('etkinlik-channel').value;
-  const title = document.getElementById('etkinlik-title').value;
-  const limit = document.getElementById('etkinlik-limit').value;
-  if(!channelId) return showToast('Kanal seçin!', 'error');
-  try {
-    await apiFetch('/api/admin/send-panel', 'POST', { panelType: 'etkinlik', channelId, title, limit });
-    showToast('Etkinlik paneli gönderildi!');
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function sendAktiflikPanel(){
-  const channelId = document.getElementById('aktiflik-channel').value;
-  const roleId = document.getElementById('aktiflik-role').value;
-  const duration = document.getElementById('aktiflik-duration').value;
-  if(!channelId || !roleId) return showToast('Kanal ve rol seçin!', 'error');
-  try {
-    await apiFetch('/api/admin/send-panel', 'POST', { panelType: 'aktiflik', channelId, roleId, duration });
-    showToast('Aktiflik paneli gönderildi!');
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-// ===================== TEAM =====================
-async function loadTeamMembers(){
-  try {
-    const d = await apiFetch('/api/team');
-    document.getElementById('team-members-list').innerHTML = d.staff.map(m => `
-      <div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
-        <div><strong><@${m.id}></strong> ${m.isOwner ? '👑' : ''}</div>
-        <div>OT: ${m.ot} | Son Mesaj: ${m.activity.lastMessageAt ? new Date(m.activity.lastMessageAt).toLocaleString() : '—'}</div>
-      </div>
-    `).join('');
-  } catch(e){}
-}
-
-async function loadStaff(){
-  try {
-    const d = await apiFetch('/api/team');
-    document.getElementById('staff-list').innerHTML = d.staff.map(m => `
-      <div style="padding:4px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
-        <span><strong><@${m.id}></strong> ${m.isOwner ? '👑' : ''}</span>
-        <button class="btn btn-danger btn-xs" onclick="removeStaffUser('${m.id}')">Kaldır</button>
-      </div>
-    `).join('');
-  } catch(e){}
-}
-
-async function addStaff(){
-  const userId = document.getElementById('staff-user-input').value.trim();
-  if(!userId) return showToast('Kullanıcı ID girin!', 'error');
-  try {
-    await apiFetch('/api/admin/staff', 'POST', { userId, action: 'add' });
-    showToast('Staff eklendi');
-    loadStaff();
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function removeStaffUser(userId){
-  try {
-    await apiFetch('/api/admin/staff', 'POST', { userId, action: 'remove' });
-    showToast('Staff kaldırıldı');
-    loadStaff();
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function removeStaff(){
-  const userId = document.getElementById('staff-user-input').value.trim();
-  if(!userId) return showToast('Kullanıcı ID girin!', 'error');
-  await removeStaffUser(userId);
-}
-
-// ===================== OT =====================
-async function loadOT(){
-  try {
-    const d = await apiFetch('/api/ot');
-    document.getElementById('ot-ranking').innerHTML = d.envanter.slice(0,20).map((u,i) => `
-      <div style="padding:4px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
-        <span>${i+1}. <strong><@${u.id}></strong></span>
-        <span>${u.ot} OT</span>
-      </div>
-    `).join('');
-    
-    const auth = await apiFetch('/api/ot/authorities');
-    document.getElementById('ot-auth-list').innerHTML = auth.authorities.map(id => 
-      `<span class="badge badge-purple"><@${id}></span>`
-    ).join(' ');
-  } catch(e){}
-}
-
-async function addOT(){
-  const userId = document.getElementById('ot-user-input').value.trim();
-  const amount = parseInt(document.getElementById('ot-amount-input').value);
-  if(!userId || !amount) return showToast('Kullanıcı ID ve miktar girin!', 'error');
-  try {
-    await apiFetch('/api/admin/ot/update', 'POST', { userId, amount });
-    showToast(`${amount} OT eklendi`);
-    loadOT();
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function resetOT(){
-  const userId = document.getElementById('ot-user-input').value.trim();
-  if(!userId) return showToast('Kullanıcı ID girin!', 'error');
-  try {
-    await apiFetch('/api/admin/ot/update', 'POST', { userId, isReset: true });
-    showToast('OT sıfırlandı');
-    loadOT();
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function addOTAuth(){
-  const userId = document.getElementById('ot-auth-user-input').value.trim();
-  if(!userId) return showToast('Kullanıcı ID girin!', 'error');
-  try {
-    await apiFetch('/api/admin/ot/authority', 'POST', { userId, action: 'add' });
-    showToast('OT yetkisi eklendi');
-    loadOT();
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-async function removeOTAuth(){
-  const userId = document.getElementById('ot-auth-user-input').value.trim();
-  if(!userId) return showToast('Kullanıcı ID girin!', 'error');
-  try {
-    await apiFetch('/api/admin/ot/authority', 'POST', { userId, action: 'remove' });
-    showToast('OT yetkisi kaldırıldı');
-    loadOT();
-  } catch(e){ showToast(e.message, 'error'); }
-}
-
-// ===================== ACTIVITY =====================
-async function loadActivity(){
-  try {
-    const d = await apiFetch('/api/activity');
-    document.getElementById('activity-tbody').innerHTML = d.stats.slice(0,50).map(s => `
-      <tr>
-        <td><strong><@${s.userId}></strong></td>
-        <td>${s.lastMessageAgo}</td>
-        <td>${s.lastVoiceAgo}</td>
-        <td>${s.ingameCount}</td>
-      </tr>
-    `).join('');
-  } catch(e){}
-}
-
-// ===================== GUARD =====================
-async function loadGuard(){
-  try {
-    const d = await apiFetch('/api/guard');
-    document.getElementById('guard-general-toggle').checked = d.enabled;
-    document.getElementById('guard-window').value = d.windowMinutes;
-    
-    document.getElementById('guard-items').innerHTML = Object.keys(d.systems).map(sys => `
-      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-        <span style="text-transform:uppercase">${sys} Guard</span>
-        <label class="switch"><input type="checkbox" ${d.systems[sys]?'checked':''} onchange="toggleGuardSys('${sys}', this.checked)"><span class="slider"></span></label>
-      </div>
-    `).join('');
-
-    document.getElementById('guard-limits').innerHTML = Object.keys(d.limits).map(sys => `
-      <div style="display:flex;gap:10px;align-items:center;padding:4px 0">
-        <span style="flex:1;text-transform:uppercase;font-size:12px">${sys}</span>
-        <input type="number" id="limit-${sys}" value="${d.limits[sys]}" style="width:60px">
-        <button class="btn btn-secondary btn-xs" onclick="saveGuardLimit('${sys}')">Kaydet</button>
-      </div>
-    `).join('');
-
-    document.getElementById('whitelist-list').innerHTML = d.whitelist.map(id => 
-      `<span class="badge badge-green"><@${id}></span>`
-    ).join(' ');
-  } catch(e){}
-}
-
-async function toggleGuardGeneral(){
-  const enabled = document.getElementById('guard-general-toggle').checked;
-  await apiFetch('/api/admin/guard/toggle', 'POST', { system: 'general', enabled });
-  showToast('Guard genel ayarı güncellendi');
-}
-
-async function toggleGuardSys(system, enabled){
-  await apiFetch('/api/admin/guard/toggle', 'POST', { system, enabled });
-  showToast(`${system} guard ${enabled ? 'açıldı' : 'kapatıldı'}`);
-}
-
-async function saveGuardLimit(system){
-  const limit = document.getElementById(`limit-${system}`).value;
-  await apiFetch('/api/admin/guard/limit', 'POST', { system, limit });
-  showToast('Limit güncellendi');
-}
-
-async function saveGuardWindow(){
-  const windowMinutes = document.getElementById('guard-window').value;
-  await apiFetch('/api/admin/guard/limit', 'POST', { system: 'window', limit: windowMinutes });
-  showToast('Pencere süresi güncellendi');
-}
-
-async function addWhitelist(){
-  const userId = document.getElementById('whitelist-input').value.trim();
-  if(!userId) return showToast('Kullanıcı ID girin!', 'error');
-  await apiFetch('/api/admin/whitelist/add', 'POST', { userId });
-  showToast('Whitelist eklendi');
-  loadGuard();
-}
-
-async function removeWhitelist(){
-  const userId = document.getElementById('whitelist-input').value.trim();
-  if(!userId) return showToast('Kullanıcı ID girin!', 'error');
-  await apiFetch('/api/admin/whitelist/remove', 'POST', { userId });
-  showToast('Whitelist kaldırıldı');
-  loadGuard();
-}
-
-// ===================== GUARD LOGS =====================
-async function loadGuardLogs(){
-  try {
-    const d = await apiFetch('/api/logs?category=guard');
-    document.getElementById('guard-logs-list').innerHTML = d.logs.map(l => `
-      <div style="padding:6px 0;border-bottom:1px solid var(--border)">
-        <span class="badge badge-red">${l.category}</span>
-        <strong>${l.action}</strong> — ${l.detail}
-        <span style="color:var(--text3);font-size:11px">${l.executor} | ${new Date(l.ts).toLocaleString()}</span>
-      </div>
-    `).join('') || 'Guard logu bulunamadı.';
-  } catch(e){}
-}
-
-// ===================== LOGS =====================
-async function loadLogs(){
-  try {
-    const category = document.getElementById('log-filter').value;
-    const url = category ? `/api/logs?category=${category}` : '/api/logs';
-    const d = await apiFetch(url);
-    
-    // Kategorileri doldur
-    const cats = await apiFetch('/api/logs/categories');
-    const filter = document.getElementById('log-filter');
-    const currentVal = filter.value;
-    filter.innerHTML = '<option value="">Tüm Kategoriler</option>' + cats.categories.map(c => 
-      `<option value="${c}">${c.toUpperCase()}</option>`
-    ).join('');
-    filter.value = currentVal;
-
-    document.getElementById('logs-list').innerHTML = d.logs.map(l => `
-      <div style="padding:6px 0;border-bottom:1px solid var(--border)">
-        <span class="badge badge-blue">${l.category}</span>
-        <strong>${l.action}</strong> — ${l.detail}
-        <span style="color:var(--text3);font-size:11px">${l.executor} | ${new Date(l.ts).toLocaleString()}</span>
-      </div>
-    `).join('') || 'Log bulunamadı.';
-  } catch(e){}
-}
-
-// ===================== BAN AFF LOGS =====================
-async function loadBanAffLogs(){
+// BAN AFFI
+async function loadBanAff(){
   try {
     const d = await apiFetch('/api/ban-aff');
-    document.getElementById('banaff-logs-list').innerHTML = d.records.map(r => `
+    document.getElementById('banaff-list').innerHTML = d.records.map(r => `
       <div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
-        <div>
-          <strong><@${r.userId}></strong> (${r.userTag})
-          <div style="font-size:12px;color:var(--text3)">${r.reason}</div>
-          <div style="font-size:11px;color:var(--text3)">${new Date(r.createdAt).toLocaleString()}</div>
-        </div>
-        <div>
-          <button class="btn btn-success btn-xs" onclick="approveBanAff('${r.userId}')">Onayla</button>
-          <button class="btn btn-danger btn-xs" onclick="deleteBanAff('${r.id}')">Sil</button>
-        </div>
+        <div><strong>${r.userTag||r.userId}</strong><p style="font-size:12px">${r.reason}</p></div>
+        <button class="btn btn-danger btn-sm" onclick="deleteBanAff('${r.id}')">Sil</button>
       </div>
-    `).join('') || 'Ban affı talebi bulunamadı.';
+    `).join('');
   } catch(e){}
-}
-
-async function approveBanAff(userId){
-  openConfirmModal({
-    title: 'Ban Affını Onayla',
-    body: `${userId} ID'li kullanıcının banı kaldırılacak.`,
-    requireReason: false,
-    onConfirm: async () => {
-      await apiFetch('/api/admin/ban-aff/approve', 'POST', { userId });
-      showToast('Ban kaldırıldı ve başvuru silindi');
-      loadBanAffLogs();
-      loadBans();
-    }
-  });
 }
 
 async function deleteBanAff(id){
   await apiFetch('/api/admin/ban-aff/delete', 'POST', { id });
   showToast('Talep silindi');
-  loadBanAffLogs();
+  loadBanAff();
 }
 
 async function resetAllBanAffs(){
@@ -1806,48 +955,56 @@ async function resetAllBanAffs(){
     onConfirm: async () => {
       await apiFetch('/api/admin/ban-aff/reset', 'POST');
       showToast('Tüm talepler sıfırlandı');
-      loadBanAffLogs();
+      loadBanAff();
     }
   });
 }
 
-// ===================== SETTINGS =====================
-async function loadSettings(){
+// GUARD
+async function loadGuard(){
   try {
-    const d = await apiFetch('/api/config');
-    document.getElementById('setting-maintenance').checked = d.maintenance;
-    document.getElementById('setting-url-protection').checked = d.urlProtection;
-    document.getElementById('setting-webhook-protection').checked = d.webhookProtection;
-    document.getElementById('setting-cfx').value = d.cfxCode;
+    const d = await apiFetch('/api/guard');
+    document.getElementById('guard-items').innerHTML = Object.keys(d.systems).map(sys => `
+      <div style="display:flex;justify-content:space-between;padding:8px 0">
+        <span style="text-transform:uppercase">${sys} Guard</span>
+        <label class="switch"><input type="checkbox" ${d.systems[sys]?'checked':''} onchange="toggleGuardSys('${sys}', this.checked)"><span class="slider"></span></label>
+      </div>
+    `).join('');
+
+    document.getElementById('guard-limits').innerHTML = Object.keys(d.limits).map(sys => `
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+        <span style="flex:1;text-transform:uppercase">${sys} Limiti</span>
+        <input type="number" id="limit-${sys}" value="${d.limits[sys]}" style="width:60px">
+        <button class="btn btn-secondary btn-sm" onclick="saveGuardLimit('${sys}')">Kaydet</button>
+      </div>
+    `).join('');
   } catch(e){}
 }
 
-async function saveSetting(key){
-  const value = document.getElementById(`setting-${key}`).checked;
-  await apiFetch('/api/admin/config', 'POST', { key, value });
-  showToast(`${key} güncellendi`);
+async function toggleGuardSys(system, enabled){
+  await apiFetch('/api/admin/guard/toggle', 'POST', { system, enabled });
+  showToast('Guard güncellendi');
 }
 
-async function saveCFX(){
-  const value = document.getElementById('setting-cfx').value.trim();
-  if(!value) return showToast('CFX kodu girin!', 'error');
-  await apiFetch('/api/admin/config', 'POST', { key: 'cfxCode', value });
-  showToast('CFX kodu güncellendi');
+async function saveGuardLimit(system){
+  const limit = document.getElementById(`limit-${system}`).value;
+  await apiFetch('/api/admin/guard/limit', 'POST', { system, limit });
+  showToast('Limit güncellendi');
 }
 
-// ===================== INIT =====================
-// DM için roller
-loadDMChannels();
+// LOGS
+async function loadLogs(){
+  try {
+    const d = await apiFetch('/api/logs');
+    document.getElementById('logs-list').innerHTML = d.logs.map(l => `
+      <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <strong>[${l.category.toUpperCase()}]</strong> ${l.action} — ${l.detail} <span style="color:var(--text3)">(${l.executor||'System'})</span>
+      </div>
+    `).join('');
+  } catch(e){}
+}
 
-// Otomatik yenileme
-setInterval(() => {
-  if(currentPage === 'dashboard') loadDashboard();
-}, 30000);
-
-// İlk yükleme
 loadDashboard();
-
-console.log('🚀 TeamCruz Full Yönetim Paneli yüklendi!');
 </script>
 </body>
 </html>
