@@ -1,6 +1,7 @@
 // ===================== TEAMCRUZ • BOT V2 (SLASH FULL) =====================
 // discord.js v14 | Slash Komutlar (Prefix Yok)
 // Ticket • Guard • OT • Aktiflik • BanAffı • FiveM • Ses • Mod
+// + Web Panel (Express API + Static Serve)
 // =========================================================================
 process.on("unhandledRejection", (r) => console.error("UNHANDLED_REJECTION:", r));
 process.on("uncaughtException", (e) => console.error("UNCAUGHT_EXCEPTION:", e));
@@ -39,10 +40,20 @@ const CLIENT_ID = (process.env.CLIENT_ID || "").trim();
 const GUILD_ID = (process.env.GUILD_ID || "").trim();
 if (!TOKEN) { console.error("❌ TOKEN eksik!"); process.exit(1); }
 
-// ===================== KEEP-ALIVE =====================
+// ===================== WEB PANEL + KEEP-ALIVE =====================
+const BOT_START_TIME = Date.now();
+
+// In-memory log ring buffer (web panel için)
+const LOG_RING = [];
+const LOG_MAX = 300;
+function pushLog(category, action, detail) {
+  LOG_RING.unshift({ category, action, detail, ts: Date.now() });
+  if (LOG_RING.length > LOG_MAX) LOG_RING.pop();
+}
+
 const app = express();
-app.get("/", (req, res) => res.status(200).send("OK"));
-app.listen(process.env.PORT || 10000, "0.0.0.0", () => console.log("🌐 Web aktif"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ===================== SABITLER =====================
 const OWNER_IDS = (process.env.OWNER_IDS || "827905938923978823,1129811807570247761").split(",").map(x => x.trim()).filter(Boolean);
@@ -155,8 +166,8 @@ const client = new Client({
 });
 
 // ===================== STATE =====================
-const ticketOwners = new Map();    // channelId -> { openerId, openerTag, openedAt }
-const pendingRejects = new Map();  // applicantId -> { messageId, channelId }
+const ticketOwners = new Map();
+const pendingRejects = new Map();
 const ingameList = new Map();
 const etkinlikList = new Map();
 const aktiflikList = new Map();
@@ -229,6 +240,7 @@ async function guardHit(guild, execId, key, reason) {
   const c = ensureCounter(guild.id, execId);
   resetIfNeeded(c);
   c[key] = (c[key] || 0) + 1;
+  pushLog("guard", `ALARM [${key.toUpperCase()}]`, `Yapan: ${execId} | ${reason} | ${c[key]}/${limit}`);
   await sendLog(guild, createEmbed(guild, {
     title: line(EMOJI.warn, "ɢᴜᴀʀᴅ ᴀʟᴀʀᴍ"),
     description: `${EMOJI.info} ・ İşlem: **${key.toUpperCase()}**\n${EMOJI.right} ・ Yapan: <@${execId}>\n${EMOJI.settings} ・ Sayaç: **${c[key]}/${limit}**\n${EMOJI.warn} ・ Sebep: **${reason}**`
@@ -239,6 +251,7 @@ async function guardHit(guild, execId, key, reason) {
       const m = await guild.members.fetch(execId).catch(() => null);
       if (m && !isGuardOwner(m.id)) { await m.kick(`GUARD: ${reason}`).catch(() => {}); punished = true; }
     } catch {}
+    pushLog("guard", "MÜDAHALESİ", `${execId} → ${punished ? "kick edildi" : "bulunamadı"}`);
     await sendLog(guild, createEmbed(guild, {
       title: line(EMOJI.lock, "ɢᴜᴀʀᴅ ᴍᴜᴅᴀʜᴀʟᴇ"),
       description: `${EMOJI.success} ・ Limit aşıldı.\n${EMOJI.right} ・ <@${execId}>\n${EMOJI.info} ・ Sonuç: **${punished ? "Kick" : "Bulunamadı"}**`
@@ -342,6 +355,7 @@ async function sendTicketLog(guild, channel, closerId) {
       `${EMOJI.right} ・ **Kapanış Tarihi:** ${closedAt}`,
     image: TICKET_BANNER_URL
   });
+  pushLog("ticket", "Ticket Kapatıldı", `Açan: ${opener?.openerId} | Kapatan: ${closerId}`);
   const transcriptBtn = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId("transcript_ph").setLabel("Ticket Transcript Geçmişi").setStyle(ButtonStyle.Secondary).setEmoji("📄").setDisabled(true)
   );
@@ -487,6 +501,158 @@ async function getPlayer(id) {
 // ===================== OT =====================
 function ensureUser(id) { if (!envanter[id]) envanter[id] = { ot: 0 }; if (typeof envanter[id].ot !== "number") envanter[id].ot = 0; }
 
+// ===================== API ROUTES (BEFORE STATIC) =====================
+app.get("/api/dashboard", async (req, res) => {
+  try {
+    let fivemData = { playerCount: 0, maxPlayers: 0, avgPing: 0, online: false };
+    try {
+      const json = await getPlayers();
+      const players = json?.Data?.players || [];
+      const sv = json?.Data?.sv_maxclients || json?.Data?.svMaxclients || 128;
+      fivemData = {
+        playerCount: players.length,
+        maxPlayers: Number(sv) || 128,
+        avgPing: players.length ? Math.round(players.reduce((a, p) => a + (p.ping || 0), 0) / players.length) : 0,
+        online: true
+      };
+    } catch {}
+    const uptimeSec = Math.floor((Date.now() - BOT_START_TIME) / 1000);
+    const h = Math.floor(uptimeSec / 3600), m = Math.floor((uptimeSec % 3600) / 60), s = uptimeSec % 60;
+    res.json({
+      fivem: fivemData,
+      bot: {
+        online: client.isReady(),
+        uptime: `${h}s ${m}dk ${s}sn`,
+        uptimeMs: Date.now() - BOT_START_TIME,
+        ping: client.ws.ping,
+        maintenance: maintenanceMode
+      },
+      stats: {
+        staffCount: staffIds.size,
+        banAffCount: banAffRecords.length,
+        activeIngame: Array.from(ingameList.values()).filter(d => !d.closed).length,
+        activeEtkinlik: Array.from(etkinlikList.values()).filter(d => !d.closed).length,
+        activeAktiflik: Array.from(aktiflikList.values()).filter(d => !d.closed).length,
+        whitelistCount: whitelist.size
+      },
+      recentLogs: LOG_RING.slice(0, 10)
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/fivem/players", async (req, res) => {
+  try {
+    const json = await getPlayers();
+    const players = (json?.Data?.players || []).map(p => {
+      const ids = Array.isArray(p.identifiers) ? p.identifiers : [];
+      return {
+        id: p.id, name: p.name, ping: p.ping,
+        steam: ids.find(i => i.startsWith("steam:")) || null,
+        discord: ids.find(i => i.startsWith("discord:"))?.replace("discord:", "") || null,
+        license: ids.find(i => i.startsWith("license:")) || null
+      };
+    });
+    const sv = json?.Data?.sv_maxclients || json?.Data?.svMaxclients || 128;
+    res.json({ players, maxPlayers: Number(sv), total: players.length, online: true, cachedAt: lastPlayersFetchAt });
+  } catch (e) { res.status(503).json({ error: e.message, online: false, players: [], total: 0 }); }
+});
+
+app.get("/api/fivem/player/:id", async (req, res) => {
+  try { res.json(await getPlayer(req.params.id)); }
+  catch (e) { res.status(503).json({ error: e.message, found: false }); }
+});
+
+app.get("/api/fivem/tag/:name", async (req, res) => {
+  try {
+    const search = decodeURIComponent(req.params.name).toLowerCase();
+    const json = await getPlayers();
+    const results = (json?.Data?.players || [])
+      .filter(p => cleanFiveMName(p.name).includes(search))
+      .slice(0, 50)
+      .map(p => {
+        const ids = Array.isArray(p.identifiers) ? p.identifiers : [];
+        return { id: p.id, name: p.name, ping: p.ping, discord: ids.find(i => i.startsWith("discord:"))?.replace("discord:", "") || null };
+      });
+    res.json({ results, total: results.length });
+  } catch (e) { res.status(503).json({ error: e.message, results: [], total: 0 }); }
+});
+
+app.get("/api/team", (req, res) => {
+  const staff = Array.from(staffIds).map(id => ({
+    id, isOwner: isOwner(id),
+    ot: envanter[id]?.ot || 0,
+    activity: activityStats.get(id) || { lastMessageAt: null, lastVoiceJoinAt: null, ingameCount: 0 }
+  }));
+  res.json({ staff, owners: OWNER_IDS, total: staff.length });
+});
+
+app.get("/api/events", (req, res) => {
+  res.json({
+    ingames: Array.from(ingameList.entries()).map(([msgId, d]) => ({
+      msgId, title: d.title, limit: d.limit, joined: d.users.length,
+      closed: d.closed, endsAt: d.endsAt, channelId: d.channelId,
+      remaining: d.endsAt ? Math.max(0, d.endsAt - Date.now()) : null
+    })),
+    etkinlikler: Array.from(etkinlikList.entries()).map(([msgId, d]) => ({
+      msgId, title: d.title, limit: d.limit, joined: d.users.length, closed: d.closed
+    })),
+    aktiflikler: Array.from(aktiflikList.entries()).map(([msgId, d]) => ({
+      msgId, roleId: d.roleId, joined: d.joined.size, closed: d.closed,
+      endsAt: d.endsAt, remaining: Math.max(0, d.endsAt - Date.now())
+    }))
+  });
+});
+
+app.get("/api/activity", (req, res) => {
+  const stats = Array.from(activityStats.entries()).map(([userId, s]) => ({
+    userId, lastMessageAt: s.lastMessageAt, lastVoiceJoinAt: s.lastVoiceJoinAt,
+    ingameCount: s.ingameCount, lastMessageAgo: formatAgo(s.lastMessageAt), lastVoiceAgo: formatAgo(s.lastVoiceJoinAt)
+  })).sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0));
+  res.json({ stats, total: stats.length });
+});
+
+app.get("/api/ban-aff", (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(50, parseInt(req.query.limit) || 20);
+  const start = (page - 1) * limit;
+  res.json({ records: banAffRecords.slice(start, start + limit), total: banAffRecords.length, page, limit, pages: Math.max(1, Math.ceil(banAffRecords.length / limit)) });
+});
+
+app.get("/api/guard", (req, res) => {
+  res.json({ enabled: guardConfig.enabled, systems: guardConfig.systems, limits: guardConfig.limits, windowMinutes: guardConfig.windowMinutes, whitelistCount: whitelist.size, whitelist: Array.from(whitelist) });
+});
+
+app.get("/api/logs", (req, res) => {
+  const category = req.query.category;
+  const logs = category ? LOG_RING.filter(l => l.category === category) : LOG_RING;
+  res.json({ logs: logs.slice(0, 100), total: logs.length });
+});
+
+app.get("/api/ot", (req, res) => {
+  const arr = Object.entries(envanter).map(([id, d]) => ({ id, ot: d?.ot || 0 })).sort((a, b) => b.ot - a.ot);
+  res.json({ envanter: arr, total: arr.length });
+});
+
+app.get("/api/config", (req, res) => {
+  res.json({ cfxCode: CFX_CODE, panelAuthor: PANEL_AUTHOR, maintenance: maintenanceMode, logChannels: Object.keys(config.logs || {}) });
+});
+
+// ===================== STATIC + SPA FALLBACK =====================
+const PUBLIC_DIR = path.join(__dirname, "public");
+if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+app.use(express.static(PUBLIC_DIR));
+
+app.get("*", (req, res) => {
+  const idx = path.join(PUBLIC_DIR, "index.html");
+  if (fs.existsSync(idx)) res.sendFile(idx);
+  else res.status(200).send("TeamCruz Bot — Panel yükleniyor.");
+});
+
+// ===================== EXPRESS LISTEN =====================
+app.listen(process.env.PORT || 10000, "0.0.0.0", () =>
+  console.log("🌐 Web panel aktif: port " + (process.env.PORT || 10000))
+);
+
 // ===================== SLASH COMMANDS =====================
 const commands = [
   new SlashCommandBuilder().setName("guard").setDescription("Guard sistemi")
@@ -579,26 +745,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     // ===== MODAL SUBMIT =====
     if (interaction.isModalSubmit()) {
-      // BAN AFFİ
       if (interaction.customId === "banaff_modal") {
         await interaction.deferReply({ flags: 64 });
         const reason = interaction.fields.getTextInputValue("banaff_reason");
         const record = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), userId: interaction.user.id, userTag: interaction.user.tag, reason: reason.slice(0, 950), createdAt: Date.now() };
         banAffRecords.unshift(record);
         saveBanAff();
+        pushLog("banaff", "Yeni Talep", `${interaction.user.tag} (${interaction.user.id})`);
         const logCh = config.banAffLogChannelId && guild.channels.cache.get(config.banAffLogChannelId);
         if (logCh) await logCh.send({ embeds: [createEmbed(guild, { title: line(EMOJI.ban, "ʏᴇɴɪ ʙᴀɴ ᴀꜰꜰɪ"), description: `${EMOJI.right} ・ <@${interaction.user.id}>\n${EMOJI.info} ・ Sebep:\n\`\`\`${record.reason}\`\`\`` })] }).catch(() => {});
         return interaction.editReply("✅ Ban kaydın alındı, ekibimiz inceleyecek.");
       }
 
-      // TICKET RED MODAL
       if (interaction.customId.startsWith("reddet_modal_")) {
         await interaction.deferReply({ flags: 64 });
         const applicantId = interaction.customId.replace("reddet_modal_", "");
         const reason = interaction.fields.getTextInputValue("reddet_sebep");
         const member = await guild.members.fetch(applicantId).catch(() => null);
-
-        // Butonu disable et
         const pending = pendingRejects.get(applicantId);
         if (pending) {
           const ch = guild.channels.cache.get(pending.channelId);
@@ -615,16 +778,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
           }
           pendingRejects.delete(applicantId);
         }
-
-        // Ticket kanalına gönder
         if (interaction.channel) {
           await interaction.channel.send({ embeds: [createEmbed(guild, { title: line(EMOJI.warn, "ʙᴀşᴠᴜʀᴜ ʀᴇᴅᴅᴇᴅɪʟᴅɪ"), description: `${EMOJI.warn} ・ Başvuru **reddedildi** (<@${interaction.user.id}>).\n${EMOJI.info} ・ Sebep: **${reason}**` })] }).catch(() => {});
         }
-        // Sonuç kanalı
         const sonucCh = config.ticketSonucChannelId && guild.channels.cache.get(config.ticketSonucChannelId);
         if (sonucCh) await sonucCh.send(`🟥 <@${applicantId}> başvurusu incelenmiş ve **${reason}** sebebiyle **reddedilmiştir**.`).catch(() => {});
-        // DM
         if (member) await member.send({ embeds: [createEmbed(guild, { title: line(EMOJI.warn, "ʙᴀşᴠᴜʀᴜɴ ʀᴇᴅᴅᴇᴅɪʟᴅɪ"), description: `${EMOJI.warn} ・ **${guild.name}** başvurun reddedildi.\n${EMOJI.info} ・ Sebep: **${reason}**` })] }).catch(() => {});
+        pushLog("ticket", "Başvuru Reddedildi", `${applicantId} | Sebep: ${reason}`);
         return interaction.editReply(`🔴 Reddedildi (${reason}).`);
       }
       return;
@@ -645,6 +805,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (existing) return interaction.editReply(`Zaten açık ticketin var: ${existing}`);
         const ch = await guild.channels.create({ name, parent: cat.id, type: ChannelType.GuildText, permissionOverwrites: [{ id: guild.id, deny: [PermissionsBitField.Flags.ViewChannel] }, { id: interaction.user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] }, { id: config.ticketStaffRoleId, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] }] });
         ticketOwners.set(ch.id, { openerId: interaction.user.id, openerTag: interaction.user.tag, openedAt: Date.now() });
+        pushLog("ticket", "Ticket Açıldı", `${interaction.user.tag} (${interaction.user.id})`);
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId(`basvuru_kabul_${interaction.user.id}`).setLabel("Kabul Et").setStyle(ButtonStyle.Success).setEmoji(EMOJI.success),
           new ButtonBuilder().setCustomId(`basvuru_reddet_${interaction.user.id}`).setLabel("Reddet").setStyle(ButtonStyle.Danger).setEmoji(EMOJI.warn),
@@ -674,6 +835,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const sonucCh = config.ticketSonucChannelId && guild.channels.cache.get(config.ticketSonucChannelId);
         if (sonucCh) await sonucCh.send(`✅ <@${applicantId}> incelenip ekibe uygun görülmüş ve başvurusu **onaylanmıştır**.`).catch(() => {});
         await member.send({ embeds: [createEmbed(guild, { title: line(EMOJI.success, "ʙᴀşᴠᴜʀᴜɴ ᴋᴀʙᴜʟ ᴇᴅɪʟᴅɪ"), description: `${EMOJI.success} ・ **${guild.name}** başvurun kabul edildi! Aramıza hoş geldin.` })] }).catch(() => {});
+        pushLog("ticket", "Başvuru Kabul Edildi", `${applicantId} | Yetkili: ${interaction.user.id}`);
         return interaction.editReply("✅ Kabul edildi.");
       }
 
@@ -823,7 +985,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return replyE(interaction, createEmbed(guild, { title: line(EMOJI.warn, "ʙᴀᴋɪᴍ ᴍᴏᴅᴜ"), description: "Bot şu an bakımda." }), true);
     }
 
-    // /guard
     if (commandName === "guard") {
       if (!isOwner(interaction.user.id)) return noPerm(interaction);
       const sub = interaction.options.getSubcommand();
@@ -851,7 +1012,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
 
-    // /setup
     if (commandName === "setup") {
       if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
       await interaction.deferReply();
@@ -868,7 +1028,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return interaction.editReply({ embeds: [createEmbed(guild, { title: line(EMOJI.success, "ꜱᴇᴛᴜᴘ ᴛᴀᴍᴀᴍ"), description: `${EMOJI.settings} ・ **${logChs.length}** log kanalı kuruldu.` })] });
     }
 
-    // /logkur
     if (commandName === "logkur") {
       if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
       const ch = interaction.options.getChannel("kanal");
@@ -876,7 +1035,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return replyE(interaction, createEmbed(guild, { title: line(EMOJI.success, "ʟᴏɢ ᴀʏᴀʀʟᴀɴᴅɪ"), description: `${EMOJI.info} ・ ${ch}` }));
     }
 
-    // /ticketkategori
     if (commandName === "ticketkategori") {
       if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
       const ch = interaction.options.getChannel("kategori");
@@ -884,7 +1042,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return replyE(interaction, createEmbed(guild, { title: line(EMOJI.success, "ᴋᴀᴛᴇɢᴏʀɪ ᴀʏᴀʀʟᴀɴᴅɪ"), description: `${EMOJI.info} ・ ${ch} \`(${ch.id})\`` }));
     }
 
-    // /basvurupanel
     if (commandName === "basvurupanel") {
       if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
       if (!config.ticketCategoryId) return replyE(interaction, createEmbed(guild, { title: line(EMOJI.warn, "ᴋᴀᴛᴇɢᴏʀɪ ʏᴏᴋ"), description: "Önce `/ticketkategori` kullan." }), true);
@@ -895,7 +1052,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return replyE(interaction, createEmbed(guild, { title: line(EMOJI.success, "ᴘᴀɴᴇʟ ɢᴏ̈ɴᴅᴇʀɪʟᴅɪ"), description: "Başvuru paneli kuruldu." }), true);
     }
 
-    // /ticketsonuckur
     if (commandName === "ticketsonuckur") {
       if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
       const ch = interaction.options.getChannel("kanal");
@@ -903,7 +1059,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return replyE(interaction, createEmbed(guild, { title: line(EMOJI.success, "ꜱᴏɴᴜç ᴋᴀɴᴀʟɪ"), description: `${EMOJI.success} ・ Kabul/red bildirimleri ${ch} kanalına gidecek.` }));
     }
 
-    // /ekiprolkur
     if (commandName === "ekiprolkur") {
       if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
       const rol = interaction.options.getRole("rol");
@@ -911,7 +1066,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return replyE(interaction, createEmbed(guild, { title: line(EMOJI.success, "ᴇᴋɪᴘ ʀᴏʟᴜ̈"), description: `${EMOJI.success} ・ ${rol} → kabul edilince VERİLECEK` }));
     }
 
-    // /alincakrolkur
     if (commandName === "alincakrolkur") {
       if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
       const rol = interaction.options.getRole("rol");
@@ -919,7 +1073,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return replyE(interaction, createEmbed(guild, { title: line(EMOJI.success, "ᴀʟɪɴᴀᴄᴀᴋ ʀᴏʟ"), description: `${EMOJI.success} ・ ${rol} → kabul edilince ALINACAK` }));
     }
 
-    // /yetkili
     if (commandName === "yetkili") {
       if (!isOwner(interaction.user.id)) return noPerm(interaction);
       const sub = interaction.options.getSubcommand();
@@ -933,7 +1086,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (sub === "kaldir") { staffIds.delete(u.id); saveStaff(); return replyE(interaction, createEmbed(guild, { title: line(EMOJI.trash, "ʏᴇᴛᴋɪʟɪ ᴋᴀʟᴅɪʀɪʟᴅɪ"), description: `${EMOJI.warn} ・ ${u} listeden çıkarıldı.` })); }
     }
 
-    // /otyetki
     if (commandName === "otyetki") {
       if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && !isOwner(interaction.user.id)) return noPerm(interaction);
       const sub = interaction.options.getSubcommand();
@@ -946,7 +1098,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (sub === "kaldir") { otYetkililer = otYetkililer.filter(x => x !== u.id); saveAuth(); return replyE(interaction, createEmbed(guild, { title: line(EMOJI.success, "ᴏᴛ ʏᴇᴛᴋɪ ᴋᴀʟᴅɪʀɪʟᴅɪ"), description: `${u} artık OT kullanamaz.` })); }
     }
 
-    // /ot
     if (commandName === "ot") {
       if (!isOtYetkili(interaction.user.id) && !interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && !isOwner(interaction.user.id)) return noPerm(interaction);
       const u = interaction.options.getUser("kullanici"), amount = interaction.options.getInteger("miktar");
@@ -978,7 +1129,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return replyE(interaction, createEmbed(guild, { title: line(EMOJI.success, "ᴏᴛ ʟᴏɢ ᴀʏᴀʀʟᴀɴᴅɪ"), description: `${EMOJI.info} ・ ${ch}` }));
     }
 
-    // /aktiflik
     if (commandName === "aktiflik") {
       const sub = interaction.options.getSubcommand();
       if (sub === "log") {
@@ -999,7 +1149,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // /banaffpanel
     if (commandName === "banaffpanel") {
       if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
       const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("banaff_open").setLabel("Banlıyım!").setStyle(ButtonStyle.Secondary).setEmoji("📝"));
@@ -1046,6 +1195,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const amount = interaction.options.getInteger("miktar");
       const msgs = await interaction.channel.bulkDelete(amount, true).catch(() => null);
       if (!msgs) return replyE(interaction, createEmbed(guild, { title: line(EMOJI.warn, "ʜᴀᴛᴀ"), description: "14 günden eski mesajlar silinemez." }), true);
+      pushLog("mod", "Toplu Mesaj Silindi", `${msgs.size} mesaj | #${interaction.channel.name}`);
       return replyE(interaction, createEmbed(guild, { title: line(EMOJI.success, "ᴛᴇᴍɪᴢʟᴇɴᴅɪ"), description: `${EMOJI.trash} ・ ${msgs.size} mesaj silindi.` }), true);
     }
 
@@ -1056,6 +1206,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (!member) return replyE(interaction, createEmbed(guild, { title: line(EMOJI.warn, "ʙᴜʟᴜɴᴀᴍᴀᴅɪ"), description: "Kullanıcı bulunamadı." }), true);
       if (!member.kickable) return replyE(interaction, createEmbed(guild, { title: line(EMOJI.lock, "ᴀᴛɪʟᴀᴍᴀᴢ"), description: "Rol hiyerarşisi engel." }), true);
       await member.kick(sebep).catch(() => {});
+      pushLog("kick", "Üye Atıldı", `${u.tag} | Sebep: ${sebep}`);
       return replyE(interaction, createEmbed(guild, { title: line(EMOJI.kick, "ᴜ̈ʏᴇ ᴀᴛɪʟᴅɪ"), description: `${EMOJI.info} ・ ${u}\n${EMOJI.right} ・ Sebep: **${sebep}**` }));
     }
 
@@ -1065,6 +1216,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const member = await guild.members.fetch(u.id).catch(() => null);
       if (member && !member.bannable) return replyE(interaction, createEmbed(guild, { title: line(EMOJI.lock, "ʙᴀɴʟᴀɴᴀᴍᴀᴢ"), description: "Rol hiyerarşisi engel." }), true);
       await guild.members.ban(u.id, { reason: sebep }).catch(() => {});
+      pushLog("ban", "Üye Banlandı", `${u.tag} | Sebep: ${sebep}`);
       return replyE(interaction, createEmbed(guild, { title: line(EMOJI.ban, "ᴜ̈ʏᴇ ʙᴀɴʟᴀɴᴅɪ"), description: `${EMOJI.info} ・ ${u}\n${EMOJI.right} ・ Sebep: **${sebep}**` }));
     }
 
@@ -1194,6 +1346,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       try {
         const data = await getPlayer(pid);
         if (!data.found) return replyE(interaction, createEmbed(guild, { title: line(EMOJI.warn, "ʙᴜʟᴜɴᴀᴍᴀᴅɪ"), description: "Oyuncu bulunamadı." }), true);
+        pushLog("fivem", "ID Sorgu", `ID: ${pid} → ${data.name}`);
         return replyE(interaction, createEmbed(guild, { title: line(EMOJI.fivem, "ꜰɪᴠᴇᴍ ᴏʏᴜɴᴄᴜ"), fields: [{ name: "İsim", value: `\`${data.name}\`` }, { name: "ID", value: `\`${data.id}\``, inline: true }, { name: "Ping", value: `\`${data.ping}\``, inline: true }, { name: "Steam", value: `\`${data.steam}\`` }, { name: "Discord", value: `\`${data.discord}\`` }] }));
       } catch (e) { return replyE(interaction, createEmbed(guild, { title: line(EMOJI.warn, "ᴀᴘɪ ʜᴀᴛᴀ"), description: e.message }), true); }
     }
@@ -1206,6 +1359,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const matched = players.filter(p => cleanFiveMName(p.name).includes(search.toLowerCase()));
         if (!matched.length) return replyE(interaction, createEmbed(guild, { title: line(EMOJI.warn, "ʙᴜʟᴜɴᴀᴍᴀᴅɪ"), description: "Oyuncu bulunamadı." }), true);
         const lst = matched.slice(0, 25).map(p => `${EMOJI.right} ・ **${p.name}** (ID: \`${p.id}\` | Ping: \`${p.ping}\`)`).join("\n");
+        pushLog("fivem", "Tag Sorgu", `"${search}" → ${matched.length} sonuç`);
         return replyE(interaction, createEmbed(guild, { title: line(EMOJI.search, "ᴛᴀɢ ᴀʀᴀᴍᴀ"), description: `${EMOJI.success} ・ Toplam: **${matched.length}**\n\n${lst}` }));
       } catch (e) { return replyE(interaction, createEmbed(guild, { title: line(EMOJI.warn, "ᴀᴘɪ ʜᴀᴛᴀ"), description: e.message }), true); }
     }
@@ -1221,6 +1375,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (commandName === "bakim") {
       if (!isOwner(interaction.user.id)) return noPerm(interaction);
       maintenanceMode = !maintenanceMode;
+      pushLog("mod", "Bakım Modu", maintenanceMode ? "AÇıldı" : "Kapatıldı");
       return replyE(interaction, createEmbed(guild, { title: line(EMOJI.settings, "ʙᴀᴋɪᴍ ᴍᴏᴅᴜ"), description: maintenanceMode ? line(EMOJI.warn, "Açıldı") : line(EMOJI.success, "Kapatıldı") }));
     }
 
@@ -1269,6 +1424,7 @@ client.on("guildBanAdd", async (ban) => {
   try {
     const logCh = ban.guild.channels.cache.get(config.logs?.banLog);
     if (logCh) logCh.send({ embeds: [createEmbed(ban.guild, { title: line(EMOJI.ban, "ʙᴀɴ ʟᴏɢ"), description: `${EMOJI.info} ・ ${ban.user}\n${EMOJI.right} ・ ID: ${ban.user.id}` })] }).catch(() => {});
+    pushLog("ban", "Ban Logu", `${ban.user.tag} (${ban.user.id})`);
     if (!isGuardEnabled("ban")) return;
     const entry = await fetchExecutor(ban.guild, 22);
     if (!entry?.executor?.id) return;
@@ -1284,6 +1440,7 @@ client.on("guildMemberRemove", async (member) => {
     if (entry?.action === 20) {
       const logCh = member.guild.channels.cache.get(config.logs?.kickLog);
       if (logCh) logCh.send({ embeds: [createEmbed(member.guild, { title: line(EMOJI.kick, "ᴋɪᴄᴋ ʟᴏɢ"), description: `${EMOJI.info} ・ ${member.user}\n${EMOJI.right} ・ Yetkili: ${entry.executor}` })] }).catch(() => {});
+      pushLog("kick", "Kick Logu", `${member.user.tag} | Yetkili: ${entry.executor?.tag}`);
     }
     if (!isGuardEnabled("kick") || !entry?.executor?.id) return;
     if (entry.target?.id && String(entry.target.id) !== String(member.id)) return;
@@ -1296,6 +1453,7 @@ client.on("channelDelete", async (channel) => {
     if (!channel.guild) return;
     const logCh = channel.guild.channels.cache.get(config.logs?.channelLog);
     if (logCh) logCh.send({ embeds: [createEmbed(channel.guild, { title: line(EMOJI.warn, "ᴋᴀɴᴀʟ ꜱɪʟɪɴᴅɪ"), description: `${EMOJI.info} ・ ${channel.name}\n${EMOJI.right} ・ ID: ${channel.id}` })] }).catch(() => {});
+    pushLog("channel", "Kanal Silindi", `#${channel.name} (${channel.id})`);
     if (!isGuardEnabled("channel")) return;
     const entry = await fetchExecutor(channel.guild, 12);
     if (!entry?.executor?.id) return;
@@ -1309,6 +1467,7 @@ client.on("roleDelete", async (role) => {
     if (!role.guild) return;
     const logCh = role.guild.channels.cache.get(config.logs?.roleLog);
     if (logCh) logCh.send({ embeds: [createEmbed(role.guild, { title: line(EMOJI.crown, "ʀᴏʟ ꜱɪʟɪɴᴅɪ"), description: `${EMOJI.info} ・ ${role.name}` })] }).catch(() => {});
+    pushLog("role", "Rol Silindi", role.name);
     if (!isGuardEnabled("role")) return;
     const entry = await fetchExecutor(role.guild, 32);
     if (!entry?.executor?.id) return;
@@ -1322,6 +1481,7 @@ client.on("messageDelete", async (msg) => {
     if (!msg.guild || msg.author?.bot) return;
     const logCh = msg.guild.channels.cache.get(config.logs?.msgLog);
     if (!logCh) return;
+    pushLog("message", "Mesaj Silindi", `${msg.author?.tag} | #${msg.channel?.name}`);
     logCh.send({ embeds: [createEmbed(msg.guild, { title: line(EMOJI.trash, "ᴍᴇꜱᴀᴊ ꜱɪʟɪɴᴅɪ"), description: `${EMOJI.info} ・ ${msg.author}\n${EMOJI.right} ・ ${msg.channel}\n\n💬 **Mesaj:**\n${msg.content || "Boş"}` })] }).catch(() => {});
   } catch {}
 });
@@ -1336,6 +1496,7 @@ client.on("guildMemberUpdate", async (oldM, newM) => {
     let text = "";
     if (added.size) text += `➕ ${added.map(r => `<@&${r.id}>`).join(", ")}\n`;
     if (removed.size) text += `➖ ${removed.map(r => `<@&${r.id}>`).join(", ")}\n`;
+    pushLog("role", "Rol Değişimi", `${newM.user.tag} | +${added.size} -${removed.size}`);
     logCh.send({ embeds: [createEmbed(newM.guild, { title: line(EMOJI.crown, "ʀᴏʟ ʟᴏɢ"), description: `${EMOJI.info} ・ ${newM}\n\n${text}` })] }).catch(() => {});
   } catch {}
 });
@@ -1348,8 +1509,13 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     if (voiceBlockedUsers.has(member.id) && newState.channelId) { await member.voice.disconnect().catch(() => {}); return; }
     const logCh = newState.guild.channels.cache.get(config.logs?.voiceLog);
     if (!logCh) return;
-    if (!oldState.channelId && newState.channelId) logCh.send({ embeds: [createEmbed(newState.guild, { title: line(EMOJI.headphones, "ꜱᴇꜱ ɢɪʀɪꜱ"), description: `${EMOJI.info} ・ ${member} → ${newState.channel}` })] }).catch(() => {});
-    else if (oldState.channelId && !newState.channelId) logCh.send({ embeds: [createEmbed(newState.guild, { title: line(EMOJI.muted, "ꜱᴇꜱ ᴄɪᴋɪꜱ"), description: `${EMOJI.info} ・ ${member}` })] }).catch(() => {});
+    if (!oldState.channelId && newState.channelId) {
+      pushLog("voice", "Ses Girişi", `${member.user.tag} → #${newState.channel?.name}`);
+      logCh.send({ embeds: [createEmbed(newState.guild, { title: line(EMOJI.headphones, "ꜱᴇꜱ ɢɪʀɪꜱ"), description: `${EMOJI.info} ・ ${member} → ${newState.channel}` })] }).catch(() => {});
+    } else if (oldState.channelId && !newState.channelId) {
+      pushLog("voice", "Ses Çıkışı", `${member.user.tag}`);
+      logCh.send({ embeds: [createEmbed(newState.guild, { title: line(EMOJI.muted, "ꜱᴇꜱ ᴄɪᴋɪꜱ"), description: `${EMOJI.info} ・ ${member}` })] }).catch(() => {});
+    }
   } catch {}
 });
 
@@ -1358,6 +1524,7 @@ client.on("guildMemberAdd", (m) => {
     if (!m.user.bot) return;
     const logCh = m.guild.channels.cache.get(config.logs?.botLog);
     if (!logCh) return;
+    pushLog("bot", "Bot Eklendi", m.user.tag);
     logCh.send({ embeds: [createEmbed(m.guild, { title: line(EMOJI.settings, "ʙᴏᴛ ᴇᴋʟᴇɴᴅɪ"), description: `${EMOJI.info} ・ ${m.user}` })] }).catch(() => {});
   } catch {}
 });
