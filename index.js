@@ -46,8 +46,8 @@ const BOT_START_TIME = Date.now();
 // In-memory log ring buffer (web panel için)
 const LOG_RING = [];
 const LOG_MAX = 300;
-function pushLog(category, action, detail) {
-  LOG_RING.unshift({ category, action, detail, ts: Date.now() });
+function pushLog(category, action, detail, executor = "System") {
+  LOG_RING.unshift({ category, action, detail, executor, ts: Date.now() });
   if (LOG_RING.length > LOG_MAX) LOG_RING.pop();
 }
 
@@ -177,6 +177,60 @@ const activityStats = new Map();
 let maintenanceMode = false;
 const urlProtection = { enabled: false };
 let lastPlayersFetchAt = 0, cachedPlayersJson = null;
+
+// ===================== ORTAK MANTIKSAL SERVİSLER =====================
+function getMainGuild() {
+  if (GUILD_ID) return client.guilds.cache.get(GUILD_ID);
+  return client.guilds.cache.first();
+}
+
+async function coreBanUser(targetId, reason = "Web Panel Ban", executor = "Web Panel") {
+  const guild = getMainGuild();
+  if (!guild) throw new Error("Sunucuya erişilemedi");
+  await guild.members.ban(targetId, { reason: `${reason} (İşlem: ${executor})` });
+  pushLog("ban", "Üye Banlandı", `Hedef: ${targetId} | Sebep: ${reason}`, executor);
+  return true;
+}
+
+async function coreKickUser(targetId, reason = "Web Panel Kick", executor = "Web Panel") {
+  const guild = getMainGuild();
+  if (!guild) throw new Error("Sunucuya erişilemedi");
+  const member = await guild.members.fetch(targetId);
+  if (!member) throw new Error("Kullanıcı sunucuda bulunamadı");
+  await member.kick(`${reason} (İşlem: ${executor})`);
+  pushLog("kick", "Üye Atıldı", `Hedef: ${targetId} | Sebep: ${reason}`, executor);
+  return true;
+}
+
+async function coreUnbanUser(targetId, reason = "Web Panel Unban", executor = "Web Panel") {
+  const guild = getMainGuild();
+  if (!guild) throw new Error("Sunucuya erişilemedi");
+  await guild.bans.remove(targetId, `${reason} (İşlem: ${executor})`);
+  pushLog("ban", "Ban Kaldırıldı", `Hedef: ${targetId}`, executor);
+  return true;
+}
+
+async function coreTimeoutUser(targetId, durationMinutes, reason = "Web Panel Timeout", executor = "Web Panel") {
+  const guild = getMainGuild();
+  if (!guild) throw new Error("Sunucuya erişilemedi");
+  const member = await guild.members.fetch(targetId);
+  if (!member) throw new Error("Kullanıcı bulunamadı");
+  const ms = durationMinutes > 0 ? durationMinutes * 60 * 1000 : null;
+  await member.timeout(ms, `${reason} (İşlem: ${executor})`);
+  pushLog("mod", durationMinutes > 0 ? "Timeout Uygulandı" : "Timeout Kaldırıldı", `Hedef: ${targetId} | Süre: ${durationMinutes}dk`, executor);
+  return true;
+}
+
+async function coreUpdateRoles(targetId, roleId, action = "add", executor = "Web Panel") {
+  const guild = getMainGuild();
+  if (!guild) throw new Error("Sunucuya erişilemedi");
+  const member = await guild.members.fetch(targetId);
+  if (!member) throw new Error("Kullanıcı bulunamadı");
+  if (action === "add") await member.roles.add(roleId);
+  else await member.roles.remove(roleId);
+  pushLog("role", "Rol Güncellendi", `Hedef: ${targetId} | Rol: ${roleId} | İşlem: ${action}`, executor);
+  return true;
+}
 
 // ===================== HELPERS =====================
 const formatNumber = (n) => Number(n || 0).toLocaleString("tr-TR");
@@ -577,6 +631,45 @@ app.get("/api/fivem/tag/:name", async (req, res) => {
   } catch (e) { res.status(503).json({ error: e.message, results: [], total: 0 }); }
 });
 
+app.get("/api/members", async (req, res) => {
+  try {
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı" });
+    const query = (req.query.q || "").toLowerCase();
+    const fetched = await guild.members.fetch({ limit: 100 }).catch(() => guild.members.cache);
+    const membersArr = [];
+    fetched.forEach(m => {
+      if (m.user.bot) return;
+      if (!query || m.user.tag.toLowerCase().includes(query) || m.id.includes(query) || (m.nickname && m.nickname.toLowerCase().includes(query))) {
+        membersArr.push({
+          id: m.id,
+          tag: m.user.tag,
+          displayName: m.displayName,
+          avatar: m.user.displayAvatarURL({ size: 64 }),
+          joinedAt: m.joinedTimestamp,
+          roles: m.roles.cache.map(r => ({ id: r.id, name: r.name })).filter(r => r.name !== "@everyone")
+        });
+      }
+    });
+    res.json({ members: membersArr.slice(0, 50), total: membersArr.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/bans", async (req, res) => {
+  try {
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı" });
+    const bans = await guild.bans.fetch().catch(() => new Map());
+    const list = Array.from(bans.values()).map(b => ({
+      userId: b.user.id,
+      tag: b.user.tag,
+      reason: b.reason || "Sebep belirtilmedi",
+      avatar: b.user.displayAvatarURL({ size: 64 })
+    }));
+    res.json({ bans: list, total: list.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get("/api/team", (req, res) => {
   const staff = Array.from(staffIds).map(id => ({
     id, isOwner: isOwner(id),
@@ -635,6 +728,148 @@ app.get("/api/ot", (req, res) => {
 
 app.get("/api/config", (req, res) => {
   res.json({ cfxCode: CFX_CODE, panelAuthor: PANEL_AUTHOR, maintenance: maintenanceMode, logChannels: Object.keys(config.logs || {}) });
+});
+
+// ===================== POST / ACTION API ENDPOINTS =====================
+app.post("/api/admin/ban", async (req, res) => {
+  try {
+    const { userId, reason } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli" });
+    await coreBanUser(userId, reason || "Panel Yönetim Banı", "Web Panel");
+    res.json({ success: true, message: "Kullanıcı başarıyla banlandı" });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/kick", async (req, res) => {
+  try {
+    const { userId, reason } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli" });
+    await coreKickUser(userId, reason || "Panel Yönetim Kick", "Web Panel");
+    res.json({ success: true, message: "Kullanıcı başarıyla atıldı" });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/unban", async (req, res) => {
+  try {
+    const { userId, reason } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli" });
+    await coreUnbanUser(userId, reason || "Panel Üzerinden Kaldırıldı", "Web Panel");
+    res.json({ success: true, message: "Ban başarıyla kaldırıldı" });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/timeout", async (req, res) => {
+  try {
+    const { userId, minutes, reason } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli" });
+    await coreTimeoutUser(userId, parseInt(minutes) || 0, reason || "Panel Timeout", "Web Panel");
+    res.json({ success: true, message: "Timeout güncellendi" });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/role/add", async (req, res) => {
+  try {
+    const { userId, roleId } = req.body;
+    if (!userId || !roleId) return res.status(400).json({ error: "Eksik parametre" });
+    await coreUpdateRoles(userId, roleId, "add", "Web Panel");
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/role/remove", async (req, res) => {
+  try {
+    const { userId, roleId } = req.body;
+    if (!userId || !roleId) return res.status(400).json({ error: "Eksik parametre" });
+    await coreUpdateRoles(userId, roleId, "remove", "Web Panel");
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/guard/toggle", (req, res) => {
+  try {
+    const { system, enabled } = req.body;
+    if (system === "general") {
+      guardConfig.enabled = !!enabled;
+    } else if (guardConfig.systems[system] !== undefined) {
+      guardConfig.systems[system] = !!enabled;
+    } else {
+      return res.status(400).json({ error: "Geçersiz sistem" });
+    }
+    saveGuard();
+    pushLog("guard", "Guard Ayarı Değiştirildi", `${system} -> ${enabled ? "AÇIK" : "KAPALI"}`, "Web Panel");
+    res.json({ success: true, guard: guardConfig });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/guard/limit", (req, res) => {
+  try {
+    const { system, limit } = req.body;
+    if (guardConfig.limits[system] !== undefined) {
+      guardConfig.limits[system] = Math.max(0, parseInt(limit) || 0);
+      saveGuard();
+      pushLog("guard", "Guard Limiti Değiştirildi", `${system} -> ${limit}`, "Web Panel");
+      return res.json({ success: true, limits: guardConfig.limits });
+    }
+    res.status(400).json({ error: "Sistem bulunamadı" });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/whitelist/add", (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli" });
+    whitelist.add(userId);
+    saveWhitelist();
+    pushLog("guard", "Whitelist Eklendi", userId, "Web Panel");
+    res.json({ success: true, whitelist: Array.from(whitelist) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/whitelist/remove", (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli" });
+    whitelist.delete(userId);
+    saveWhitelist();
+    pushLog("guard", "Whitelist Çıkarıldı", userId, "Web Panel");
+    res.json({ success: true, whitelist: Array.from(whitelist) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/ban-aff/delete", (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: "id gerekli" });
+    banAffRecords = banAffRecords.filter(r => r.id !== id && r.userId !== id);
+    saveBanAff();
+    pushLog("banaff", "Ban Affı Silindi", `ID: ${id}`, "Web Panel");
+    res.json({ success: true, records: banAffRecords });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/ban-aff/reset", (req, res) => {
+  try {
+    banAffRecords = [];
+    saveBanAff();
+    pushLog("banaff", "Tüm Ban Affı Talepleri Sıfırlandı", "-", "Web Panel");
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/ot/update", (req, res) => {
+  try {
+    const { userId, amount, isReset } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli" });
+    ensureUser(userId);
+    if (isReset) {
+      envanter[userId].ot = 0;
+    } else {
+      envanter[userId].ot = Math.max(0, (envanter[userId].ot || 0) + (parseInt(amount) || 0));
+    }
+    saveEnvanter();
+    pushLog("weed", "OT Güncellendi", `${userId} -> ${isReset ? "Sıfırlandı" : amount}`, "Web Panel");
+    res.json({ success: true, ot: envanter[userId].ot });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ===================== STATIC + SPA FALLBACK =====================
@@ -1136,7 +1371,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const ch = interaction.options.getChannel("kanal"); config.aktiflikLogChannelId = ch.id; saveConfig();
         return replyE(interaction, createEmbed(guild, { title: line(EMOJI.success, "ᴋᴀʏᴅᴇᴅɪʟᴅɪ"), description: `${EMOJI.success} ・ Aktiflik log: ${ch}` }));
       }
-      if (sub === "baslat") {
+      if (sub === "basulat") {
         if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
         const role = interaction.options.getRole("rol"), sureText = interaction.options.getString("sure");
         const dMs = parseDurationToMs(sureText);
