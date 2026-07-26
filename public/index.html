@@ -50,7 +50,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ─── PARTICLES CANVAS ─── */
+/* PARTICLES CANVAS */
 #particles-canvas {
   position: fixed;
   top: 0; left: 0;
@@ -60,10 +60,10 @@ body {
   opacity: 0.35;
 }
 
-/* ─── LAYOUT ─── */
+/* LAYOUT */
 .layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
 
-/* ─── SIDEBAR ─── */
+/* SIDEBAR */
 .sidebar {
   width: var(--sidebar-w);
   min-height: 100vh;
@@ -182,7 +182,7 @@ body {
 .collapse-icon { font-size: 16px; flex-shrink: 0; transition: transform var(--transition); }
 .sidebar.collapsed .collapse-icon { transform: rotate(180deg); }
 
-/* ─── MAIN CONTENT ─── */
+/* MAIN CONTENT */
 .main {
   margin-left: var(--sidebar-w);
   flex: 1;
@@ -192,7 +192,7 @@ body {
 }
 .main.collapsed { margin-left: var(--sidebar-collapsed); }
 
-/* ─── TOPBAR ─── */
+/* TOPBAR */
 .topbar {
   height: 68px;
   background: var(--bg2);
@@ -228,7 +228,7 @@ body {
   cursor: pointer; padding: 4px;
 }
 
-/* ─── PAGE ─── */
+/* PAGE */
 .page-content {
   padding: 28px;
   flex: 1;
@@ -241,19 +241,19 @@ body {
 .page { display: none; }
 .page.active { display: block; }
 
-/* ─── PAGE HEADER ─── */
+/* PAGE HEADER */
 .page-header { margin-bottom: 28px; }
 .page-header h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
 .page-header p { color: var(--text2); font-size: 14px; }
 
-/* ─── GRID ─── */
+/* GRID */
 .grid { display: grid; gap: 16px; }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-4 { grid-template-columns: repeat(4, 1fr); }
 .grid-2-1 { grid-template-columns: 2fr 1fr; }
 
-/* ─── CARD ─── */
+/* CARD */
 .card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -279,7 +279,7 @@ body {
 }
 .card:hover::before { opacity: 1; }
 
-/* ─── STAT CARD ─── */
+/* STAT CARD */
 .stat-card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -331,14 +331,12 @@ body {
 .stat-label { font-size: 12px; color: var(--text3); font-weight: 500; letter-spacing: 0.5px; }
 .stat-sub { font-size: 11px; color: var(--text3); margin-top: 8px; }
 
-/* ─── LED BORDER ANIMATION ─── */
+/* LED BORDER ANIMATION */
 @keyframes led-run {
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
 }
-.led-border {
-  position: relative;
-}
+.led-border { position: relative; }
 .led-border::after {
   content: '';
   position: absolute;
@@ -353,7 +351,7 @@ body {
 }
 .led-border:hover::after { opacity: 1; }
 
-/* ─── TABLE ─── */
+/* TABLE */
 .table-wrap {
   overflow-x: auto;
   border-radius: var(--radius2);
@@ -386,7 +384,7 @@ td { padding: 12px 16px; color: var(--text2); vertical-align: middle; }
 td .mono { font-family: var(--mono); font-size: 12px; color: var(--text3); }
 td strong { color: var(--text); font-weight: 500; }
 
-/* ─── BADGE ─── */
+/* BADGE */
 .badge {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 3px 8px; border-radius: 99px;
@@ -400,7 +398,7 @@ td strong { color: var(--text); font-weight: 500; }
 .badge-purple { background: rgba(168,85,247,0.12); color: var(--purple); border: 1px solid rgba(168,85,247,0.25); }
 .badge-gray { background: rgba(255,255,255,0.06); color: var(--text3); border: 1px solid var(--border); }
 
-/* ─── BUTTON ─── */
+/* BUTTON */
 .btn {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 9px 18px; border-radius: var(--radius2);
@@ -411,29 +409,15 @@ td strong { color: var(--text); font-weight: 500; }
   white-space: nowrap;
 }
 .btn:active { transform: scale(0.97); }
-.btn-primary {
-  background: white; color: black;
-  box-shadow: 0 0 20px rgba(255,255,255,0.15);
-}
+.btn-primary { background: white; color: black; box-shadow: 0 0 20px rgba(255,255,255,0.15); }
 .btn-primary:hover { box-shadow: 0 0 30px rgba(255,255,255,0.25); }
-.btn-secondary {
-  background: var(--card2); color: var(--text);
-  border: 1px solid var(--border);
-}
+.btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
 .btn-secondary:hover { border-color: var(--border-glow); background: var(--card3); }
 .btn-danger { background: rgba(239,68,68,0.2); color: var(--red); border: 1px solid var(--red); }
 .btn-danger:hover { background: var(--red); color: white; }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
-.btn-icon { padding: 8px; border-radius: var(--radius2); }
 
-/* ─── INPUT ─── */
-.input-wrap { position: relative; }
-.input-wrap .input-icon {
-  position: absolute; left: 12px; top: 50%;
-  transform: translateY(-50%);
-  font-size: 15px; color: var(--text3);
-  pointer-events: none;
-}
+/* INPUT */
 input, select {
   width: 100%;
   background: var(--card2);
@@ -447,7 +431,6 @@ input, select {
   transition: border-color var(--transition);
 }
 input:focus, select:focus { border-color: var(--border-glow); }
-.input-wrap input { padding-left: 38px; }
 select option { background: var(--card2); }
 
 /* TOGGLE SWITCH */
@@ -465,240 +448,30 @@ input:checked + .slider:before { transform: translateX(18px); }
 .toast-error { border-color: var(--red); }
 @keyframes toast-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-/* ─── TOOLBAR ─── */
-.toolbar {
-  display: flex; align-items: center; gap: 10px;
-  margin-bottom: 16px; flex-wrap: wrap;
-}
+/* TOOLBAR */
+.toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
 .toolbar .flex1 { flex: 1; min-width: 200px; }
 
-/* ─── LOG ENTRY ─── */
-.log-entry {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 0; border-bottom: 1px solid var(--border);
-  animation: fade-in 0.3s ease forwards;
-}
-.log-entry:last-child { border-bottom: none; }
-@keyframes fade-in {
-  from { opacity: 0; transform: translateX(-8px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-.log-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  margin-top: 5px; flex-shrink: 0;
-}
-.log-dot.ban { background: var(--red); box-shadow: 0 0 6px var(--red); }
-.log-dot.kick { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
-.log-dot.guard { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
-.log-dot.role { background: var(--purple); box-shadow: 0 0 6px var(--purple); }
-.log-dot.voice { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.log-dot.fivem { background: #f97316; box-shadow: 0 0 6px #f97316; }
-.log-dot.message { background: var(--text3); }
-.log-dot.ticket { background: #06b6d4; box-shadow: 0 0 6px #06b6d4; }
-.log-dot.banaff { background: var(--red); box-shadow: 0 0 6px var(--red); }
-.log-dot.mod { background: var(--yellow); }
-.log-dot.bot { background: var(--blue); }
-.log-dot.channel { background: var(--purple); }
-.log-time { font-family: var(--mono); font-size: 11px; color: var(--text3); white-space: nowrap; }
-.log-body { flex: 1; }
-.log-category { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; color: var(--text3); margin-bottom: 2px; }
-.log-action { font-size: 13px; font-weight: 600; color: var(--text); }
-.log-detail { font-size: 12px; color: var(--text2); margin-top: 2px; font-family: var(--mono); }
-
-/* ─── GUARD TOGGLE ─── */
-.guard-item {
-  display: flex; align-items: center; gap: 16px;
-  padding: 14px 0; border-bottom: 1px solid var(--border);
-}
-.guard-item:last-child { border-bottom: none; }
-.guard-item-info { flex: 1; }
-.guard-item-title { font-size: 13px; font-weight: 600; }
-.guard-item-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
-
-/* ─── PROGRESS BAR ─── */
-.progress-wrap { margin-top: 10px; }
-.progress-label {
-  display: flex; justify-content: space-between;
-  font-size: 11px; color: var(--text3); margin-bottom: 6px;
-}
-.progress-bar {
-  height: 4px; background: var(--card2);
-  border-radius: 99px; overflow: hidden;
-}
-.progress-fill {
-  height: 100%; border-radius: 99px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.6), white);
-  box-shadow: 0 0 8px rgba(255,255,255,0.3);
-  transition: width 1s cubic-bezier(0.4,0,0.2,1);
-  width: 0;
-}
-
-/* ─── AVATAR ─── */
-.avatar {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: var(--card2); border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 700;
-  overflow: hidden; flex-shrink: 0;
-}
-.avatar img { width: 100%; height: 100%; object-fit: cover; }
-
-/* ─── MODAL ─── */
+/* MODAL */
 .modal-backdrop {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(6px);
-  z-index: 200;
-  display: none;
-  align-items: center; justify-content: center;
-  padding: 20px;
-  animation: backdrop-in 0.2s ease;
-}
-@keyframes backdrop-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  background: rgba(0,0,0,0.85); backdrop-filter: blur(6px);
+  z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px;
 }
 .modal-backdrop.open { display: flex; }
 .modal {
-  background: var(--card);
-  border: 1px solid var(--border-glow);
-  border-radius: var(--radius);
-  padding: 28px;
-  max-width: 520px; width: 100%;
-  box-shadow: 0 0 60px rgba(255,255,255,0.06);
-  animation: modal-in 0.3s cubic-bezier(0.34,1.56,0.64,1);
-  max-height: 90vh;
-  overflow-y: auto;
+  background: var(--card); border: 1px solid var(--border-glow);
+  border-radius: var(--radius); padding: 28px; max-width: 520px; width: 100%;
 }
-.modal::-webkit-scrollbar { width: 4px; }
-.modal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-@keyframes modal-in {
-  from { opacity: 0; transform: scale(0.92) translateY(12px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-.modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 20px; padding-bottom: 16px;
-  border-bottom: 1px solid var(--border);
-}
-.modal-header h3 { font-size: 16px; font-weight: 700; }
-.modal-close {
-  background: none; border: none;
-  color: var(--text3); font-size: 20px;
-  cursor: pointer; padding: 4px;
-  border-radius: 6px; transition: color var(--transition);
-  line-height: 1;
-}
-.modal-close:hover { color: var(--text); }
-.modal-field { margin-bottom: 14px; }
-.modal-field label { font-size: 12px; color: var(--text2); margin-bottom: 6px; display: block; }
-.modal-field .val {
-  font-family: var(--mono); font-size: 13px;
-  background: var(--card2); border: 1px solid var(--border);
-  border-radius: var(--radius2); padding: 8px 12px;
-  color: var(--text); word-break: break-all;
-}
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+.modal-close { background: none; border: none; color: var(--text3); font-size: 20px; cursor: pointer; }
 
-/* ─── LOADER ─── */
-.loader {
-  display: flex; align-items: center; justify-content: center;
-  padding: 60px; flex-direction: column; gap: 16px;
-}
-.loader-ring {
-  width: 36px; height: 36px;
-  border: 2px solid var(--border);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loader-text { font-size: 13px; color: var(--text3); }
-
-/* ─── EMPTY STATE ─── */
-.empty-state {
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 60px 20px; gap: 12px; text-align: center;
-}
-.empty-state .empty-icon { font-size: 48px; opacity: 0.3; }
-.empty-state h4 { font-size: 15px; font-weight: 600; color: var(--text2); }
-.empty-state p { font-size: 13px; color: var(--text3); }
-
-/* ─── ERROR STATE ─── */
-.error-state {
-  background: rgba(239,68,68,0.06);
-  border: 1px solid rgba(239,68,68,0.2);
-  border-radius: var(--radius2);
-  padding: 16px;
-  font-size: 13px; color: var(--red);
-  display: flex; align-items: center; gap: 10px;
-}
-
-/* ─── SECTION DIVIDER ─── */
-.section-title {
-  font-size: 13px; font-weight: 700;
-  color: var(--text2); margin-bottom: 12px;
-  letter-spacing: 0.3px;
-  display: flex; align-items: center; gap: 8px;
-}
-.section-title::after {
-  content: '';
-  flex: 1; height: 1px;
-  background: var(--border);
-}
-
-/* ─── PING BAR ─── */
-.ping-val {
-  font-family: var(--mono);
-  font-size: 12px;
-}
-.ping-low { color: var(--green); }
-.ping-mid { color: var(--yellow); }
-.ping-high { color: var(--red); }
-
-/* ─── REFRESH BTN ─── */
-.refresh-anim { animation: rotate-once 0.5s ease; }
-@keyframes rotate-once { to { transform: rotate(360deg); } }
-
-/* ─── MOBILE OVERLAY ─── */
-.mobile-overlay {
-  display: none;
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.6);
-  z-index: 99;
-}
-
-/* ─── RESPONSIVE ─── */
 @media (max-width: 900px) {
-  .sidebar {
-    left: -100%;
-    width: var(--sidebar-w) !important;
-    transition: left var(--transition);
-  }
+  .sidebar { left: -100%; width: var(--sidebar-w) !important; }
   .sidebar.mobile-open { left: 0; }
   .main { margin-left: 0 !important; }
   .burger-btn { display: flex; }
-  .grid-4 { grid-template-columns: repeat(2, 1fr); }
-  .grid-3 { grid-template-columns: repeat(2, 1fr); }
-  .grid-2 { grid-template-columns: 1fr; }
-  .grid-2-1 { grid-template-columns: 1fr; }
-  .mobile-overlay { display: block; opacity: 0; pointer-events: none; transition: opacity var(--transition); }
-  .mobile-overlay.open { opacity: 1; pointer-events: auto; }
 }
-@media (max-width: 600px) {
-  .page-content { padding: 16px; }
-  .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
-  .topbar { padding: 0 16px; }
-}
-
-/* ─── SCROLLBAR ─── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: var(--border-glow); }
-
-/* ─── SELECTION ─── */
-::selection { background: rgba(255,255,255,0.15); }
 </style>
 </head>
 <body>
@@ -707,7 +480,7 @@ input:checked + .slider:before { transform: translateX(18px); }
 <div id="toast-container"></div>
 <div class="mobile-overlay" id="mobile-overlay" onclick="closeMobileSidebar()"></div>
 
-<!-- ONAY MODALI -->
+<!-- CONFIRM MODAL -->
 <div class="modal-backdrop" id="modal-confirm">
   <div class="modal">
     <div class="modal-header">
@@ -741,28 +514,23 @@ input:checked + .slider:before { transform: translateX(18px); }
       <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard',this)">
         <span class="nav-icon">📊</span><span class="sidebar-label">Dashboard</span>
       </div>
-      <div class="sidebar-section-title">FİVEM</div>
+      <div class="sidebar-section-title">PANEL SİSTEMLERİ</div>
+      <div class="nav-item" data-page="send-panel" onclick="navigate('send-panel',this)">
+        <span class="nav-icon">⚡</span><span class="sidebar-label">Discord Panel Gönder</span>
+      </div>
+      <div class="sidebar-section-title">FİVEM & DISCORD</div>
       <div class="nav-item" data-page="players" onclick="navigate('players',this)">
-        <span class="nav-icon">🎮</span><span class="sidebar-label">Oyuncular</span>
+        <span class="nav-icon">🎮</span><span class="sidebar-label">FiveM Oyuncuları</span>
       </div>
-      <div class="nav-item" data-page="id-query" onclick="navigate('id-query',this)">
-        <span class="nav-icon">🔍</span><span class="sidebar-label">ID Sorgu</span>
-      </div>
-      <div class="nav-item" data-page="tag-query" onclick="navigate('tag-query',this)">
-        <span class="nav-icon">🏷️</span><span class="sidebar-label">Tag Sorgu</span>
-      </div>
-      <div class="sidebar-section-title">DISCORD & EKİP</div>
       <div class="nav-item" data-page="members" onclick="navigate('members',this)">
         <span class="nav-icon">👥</span><span class="sidebar-label">Discord Üyeleri</span>
       </div>
+      <div class="sidebar-section-title">EKİP & ETKİNLİK</div>
       <div class="nav-item" data-page="team" onclick="navigate('team',this)">
         <span class="nav-icon">👑</span><span class="sidebar-label">Ekip / Kadro</span>
       </div>
       <div class="nav-item" data-page="events" onclick="navigate('events',this)">
         <span class="nav-icon">🎯</span><span class="sidebar-label">Etkinlikler</span>
-      </div>
-      <div class="nav-item" data-page="activity" onclick="navigate('activity',this)">
-        <span class="nav-icon">📈</span><span class="sidebar-label">Aktiflik</span>
       </div>
       <div class="sidebar-section-title">YÖNETİM & CEZALAR</div>
       <div class="nav-item" data-page="bans" onclick="navigate('bans',this)">
@@ -777,23 +545,12 @@ input:checked + .slider:before { transform: translateX(18px); }
       <div class="nav-item" data-page="logs" onclick="navigate('logs',this)">
         <span class="nav-icon">📋</span><span class="sidebar-label">Loglar</span>
       </div>
-      <div class="nav-item" data-page="settings" onclick="navigate('settings',this)">
-        <span class="nav-icon">⚙️</span><span class="sidebar-label">Ayarlar</span>
-      </div>
     </nav>
-    <div class="sidebar-bottom">
-      <div class="collapse-btn" onclick="toggleSidebar()">
-        <span class="collapse-icon">◀</span>
-        <span class="sidebar-label">Daralt</span>
-      </div>
-    </div>
   </aside>
 
   <!-- MAIN -->
   <div class="main" id="main">
-    <!-- TOPBAR -->
     <div class="topbar">
-      <button class="burger-btn" onclick="openMobileSidebar()">☰</button>
       <span class="topbar-title" id="topbar-title">Dashboard</span>
       <div class="topbar-actions">
         <div class="status-dot" id="bot-status-dot"></div>
@@ -802,395 +559,177 @@ input:checked + .slider:before { transform: translateX(18px); }
       </div>
     </div>
 
-    <!-- PAGES -->
     <div class="page-content">
 
-      <!-- ═══════════ DASHBOARD ═══════════ -->
+      <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
         <div class="page-header">
           <h1>Dashboard</h1>
           <p>Sunucu ve bot durumunun genel görünümü</p>
         </div>
-
-        <div class="grid grid-4" style="margin-bottom:20px">
+        <div class="grid grid-4">
           <div class="stat-card led-border">
-            <span class="stat-icon">🎮</span>
             <div class="stat-value" id="dash-players">—</div>
             <div class="stat-label">Online Oyuncu</div>
-            <div class="stat-sub" id="dash-cap">/ — kapasite</div>
-            <div class="led-line"></div>
           </div>
           <div class="stat-card led-border">
-            <span class="stat-icon">📡</span>
-            <div class="stat-value" id="dash-ping-avg">—</div>
-            <div class="stat-label">Ort. Ping (ms)</div>
-            <div class="stat-sub" id="dash-server-status">—</div>
-            <div class="led-line"></div>
-          </div>
-          <div class="stat-card led-border">
-            <span class="stat-icon">⏱️</span>
             <div class="stat-value" id="dash-uptime">—</div>
             <div class="stat-label">Bot Uptime</div>
-            <div class="stat-sub" id="dash-bot-ping">WS: — ms</div>
-            <div class="led-line"></div>
           </div>
           <div class="stat-card led-border">
-            <span class="stat-icon">👥</span>
             <div class="stat-value" id="dash-staff">—</div>
             <div class="stat-label">Yetkili Sayısı</div>
-            <div class="stat-sub" id="dash-banaff">— ban affı talebi</div>
-            <div class="led-line"></div>
           </div>
-        </div>
-
-        <div class="grid grid-2-1">
-          <!-- Player bar -->
-          <div class="card">
-            <div class="section-title">🎮 Sunucu Doluluk</div>
-            <div class="progress-wrap">
-              <div class="progress-label">
-                <span id="prog-players">0 Oyuncu</span>
-                <span id="prog-cap">/ 0</span>
-              </div>
-              <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
-            </div>
-            <div style="margin-top:20px">
-              <div class="section-title">⚡ Aktif Sistemler</div>
-              <div class="grid grid-2">
-                <div style="padding:10px 0;border-bottom:1px solid var(--border)">
-                  <div style="font-size:12px;color:var(--text3)">İNGAME</div>
-                  <div style="font-size:18px;font-weight:700;font-family:var(--mono)" id="dash-ingame">—</div>
-                </div>
-                <div style="padding:10px 0;border-bottom:1px solid var(--border)">
-                  <div style="font-size:12px;color:var(--text3)">ETKİNLİK</div>
-                  <div style="font-size:18px;font-weight:700;font-family:var(--mono)" id="dash-etkinlik">—</div>
-                </div>
-                <div style="padding:10px 0">
-                  <div style="font-size:12px;color:var(--text3)">AKTİFLİK</div>
-                  <div style="font-size:18px;font-weight:700;font-family:var(--mono)" id="dash-aktiflik">—</div>
-                </div>
-                <div style="padding:10px 0">
-                  <div style="font-size:12px;color:var(--text3)">WHİTELİST</div>
-                  <div style="font-size:18px;font-weight:700;font-family:var(--mono)" id="dash-whitelist">—</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- Recent logs -->
-          <div class="card">
-            <div class="section-title">📋 Son Aktivite</div>
-            <div id="dash-logs">
-              <div class="loader"><div class="loader-ring"></div></div>
-            </div>
+          <div class="stat-card led-border">
+            <div class="stat-value" id="dash-banaff">—</div>
+            <div class="stat-label">Ban Affı Talebi</div>
           </div>
         </div>
       </div>
 
-      <!-- ═══════════ PLAYERS ═══════════ -->
+      <!-- SEND PANEL (PANEL GÖNDERME KONSOLU) -->
+      <div class="page" id="page-send-panel">
+        <div class="page-header">
+          <h1>Discord Panel Gönder</h1>
+          <p>Seçtiğiniz paneli belirlediğiniz Discord kanalına anında butonlu/embed olarak gönderin</p>
+        </div>
+        <div class="card" style="max-width:600px">
+          <div style="margin-bottom:14px">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">PANEL TÜRÜ</label>
+            <select id="panel-type" onchange="updatePanelForm()">
+              <option value="ticket">Ticket / Başvuru Paneli</option>
+              <option value="banaff">Ban Affı Başvuru Paneli</option>
+              <option value="ingame">Ingame / Kadro Paneli</option>
+              <option value="etkinlik">Etkinlik Paneli</option>
+              <option value="aktiflik">Aktiflik Testi Paneli</option>
+            </select>
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">GÖNDERİLECEK DISCORD KANALI</label>
+            <select id="panel-channel"><option value="">Yükleniyor...</option></select>
+          </div>
+          <div style="margin-bottom:14px" id="panel-title-wrap">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">PANEL BAŞLIĞI / BUTON YAZISI</label>
+            <input type="text" id="panel-title" placeholder="Başvuru Yap">
+          </div>
+          <div style="margin-bottom:14px;display:none" id="panel-limit-wrap">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">KONTENJAN / LİMİT</label>
+            <input type="number" id="panel-limit" value="10">
+          </div>
+          <div style="margin-bottom:14px;display:none" id="panel-duration-wrap">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">SÜRE (Örn: 30dk, 2sa)</label>
+            <input type="text" id="panel-duration" placeholder="30dk">
+          </div>
+          <div style="margin-bottom:14px;display:none" id="panel-role-wrap">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">ETİKETLENECEK ROL</label>
+            <select id="panel-role"><option value="">Rol Seçiniz...</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="submitSendPanel()">🚀 Discord Kanalına Gönder</button>
+        </div>
+      </div>
+
+      <!-- PLAYERS (FIVEM) -->
       <div class="page" id="page-players">
         <div class="page-header">
           <h1>FiveM Oyuncuları</h1>
-          <p>Sunucuda anlık olarak bağlı oyuncular ve canlı aksiyonlar</p>
+          <p>Sunucuda bağlı olan oyuncular</p>
         </div>
         <div class="card">
-          <div class="toolbar">
-            <div class="input-wrap flex1">
-              <span class="input-icon">🔍</span>
-              <input type="text" id="players-search" placeholder="İsim, ID veya Discord ara..." oninput="filterPlayers()">
-            </div>
-            <select id="players-sort" onchange="filterPlayers()" style="width:auto;min-width:140px">
-              <option value="id">ID sırasına göre</option>
-              <option value="name">İsme göre</option>
-              <option value="ping">Ping'e göre</option>
-            </select>
-            <button class="btn btn-secondary" onclick="loadPlayers()">
-              <span id="players-refresh-icon">🔄</span> Yenile
-            </button>
-          </div>
-          <div id="players-count" style="font-size:12px;color:var(--text3);margin-bottom:12px"></div>
           <div class="table-wrap">
             <table>
               <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>İSİM</th>
-                  <th>PİNG</th>
-                  <th>DİSCORD</th>
-                  <th>AKSİYONLAR</th>
-                </tr>
+                <tr><th>ID</th><th>İSİM</th><th>PİNG</th><th>DİSCORD</th><th>AKSİYONLAR</th></tr>
               </thead>
-              <tbody id="players-tbody">
-                <tr><td colspan="5"><div class="loader"><div class="loader-ring"></div><span class="loader-text">Yükleniyor...</span></div></td></tr>
-              </tbody>
+              <tbody id="players-tbody"></tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- ═══════════ DISCORD MEMBERS ═══════════ -->
+      <!-- DISCORD MEMBERS -->
       <div class="page" id="page-members">
         <div class="page-header">
           <h1>Discord Üyeleri</h1>
-          <p>Discord sunucusundaki üyeleri arayın ve yönetin</p>
+          <p>Discord üyelerini arayın ve yönetin</p>
         </div>
         <div class="card">
           <div class="toolbar">
-            <div class="input-wrap flex1">
-              <span class="input-icon">🔍</span>
-              <input type="text" id="member-search-input" placeholder="Discord Tag veya ID ara..." onkeydown="if(event.key==='Enter') searchMembers()">
-            </div>
+            <input type="text" id="member-search-input" placeholder="Tag veya ID..." style="width:250px">
             <button class="btn btn-primary" onclick="searchMembers()">Ara</button>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
-                <tr>
-                  <th>KULLANICI</th>
-                  <th>ID</th>
-                  <th>KATILIM</th>
-                  <th>AKSİYONLAR</th>
-                </tr>
+                <tr><th>KULLANICI</th><th>ID</th><th>KATILIM</th><th>AKSİYONLAR</th></tr>
               </thead>
-              <tbody id="members-tbody">
-                <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text3)">Arama yapmak için yukarıdaki alanı kullanın.</td></tr>
-              </tbody>
+              <tbody id="members-tbody"></tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- ═══════════ BANS ═══════════ -->
+      <!-- BANS -->
       <div class="page" id="page-bans">
-        <div class="page-header">
-          <h1>Aktif Banlar</h1>
-          <p>Discord sunucusundaki yasaklı kullanıcılar</p>
-        </div>
+        <div class="page-header"><h1>Aktif Banlar</h1></div>
         <div class="card">
           <div class="table-wrap">
             <table>
-              <thead>
-                <tr>
-                  <th>KULLANICI</th>
-                  <th>ID</th>
-                  <th>SEBEP</th>
-                  <th>İŞLEM</th>
-                </tr>
-              </thead>
-              <tbody id="bans-tbody">
-                <tr><td colspan="4"><div class="loader"><div class="loader-ring"></div></div></td></tr>
-              </tbody>
+              <thead><tr><th>KULLANICI</th><th>ID</th><th>SEBEP</th><th>İŞLEM</th></tr></thead>
+              <tbody id="bans-tbody"></tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- ═══════════ ID QUERY ═══════════ -->
-      <div class="page" id="page-id-query">
-        <div class="page-header">
-          <h1>ID Sorgu</h1>
-          <p>FiveM oyuncu ID'si ile bilgi sorgula</p>
-        </div>
-        <div class="card" style="max-width:520px;margin-bottom:20px">
-          <div style="display:flex;gap:10px;align-items:flex-end">
-            <div style="flex:1">
-              <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:8px">FiveM ID</label>
-              <input type="number" id="id-input" placeholder="0" min="0" oninput="clearIdResult()">
-            </div>
-            <button class="btn btn-primary" onclick="queryId()">Sorgula</button>
-          </div>
-        </div>
-        <div id="id-result"></div>
-      </div>
-
-      <!-- ═══════════ TAG QUERY ═══════════ -->
-      <div class="page" id="page-tag-query">
-        <div class="page-header">
-          <h1>Tag Sorgu</h1>
-          <p>FiveM oyuncu ismine göre arama yap</p>
-        </div>
-        <div class="card" style="max-width:520px;margin-bottom:20px">
-          <div style="display:flex;gap:10px;align-items:flex-end">
-            <div style="flex:1">
-              <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:8px">Oyuncu Adı</label>
-              <input type="text" id="tag-input" placeholder="Aranacak isim..." oninput="clearTagResult()">
-            </div>
-            <button class="btn btn-primary" onclick="queryTag()">Ara</button>
-          </div>
-        </div>
-        <div id="tag-result"></div>
-      </div>
-
-      <!-- ═══════════ TEAM ═══════════ -->
+      <!-- TEAM -->
       <div class="page" id="page-team">
-        <div class="page-header">
-          <h1>Ekip / Kadro</h1>
-          <p>Yetkili ekip üyeleri ve aktivite bilgileri</p>
-        </div>
-        <div id="team-grid" class="grid grid-3">
-          <div class="loader" style="grid-column:1/-1"><div class="loader-ring"></div><span class="loader-text">Yükleniyor...</span></div>
-        </div>
+        <div class="page-header"><h1>Ekip / Kadro</h1></div>
+        <div id="team-grid" class="grid grid-3"></div>
       </div>
 
-      <!-- ═══════════ EVENTS ═══════════ -->
+      <!-- EVENTS -->
       <div class="page" id="page-events">
-        <div class="page-header">
-          <h1>Etkinlikler</h1>
-          <p>Aktif ingame, etkinlik ve aktiflik panelleri</p>
-        </div>
-        <div class="grid grid-3" id="events-grid">
-          <div class="loader" style="grid-column:1/-1"><div class="loader-ring"></div></div>
-        </div>
+        <div class="page-header"><h1>Etkinlikler</h1></div>
+        <div id="events-grid" class="grid grid-3"></div>
       </div>
 
-      <!-- ═══════════ ACTIVITY ═══════════ -->
-      <div class="page" id="page-activity">
-        <div class="page-header">
-          <h1>Aktiflik</h1>
-          <p>Üye aktivite istatistikleri</p>
-        </div>
-        <div class="card">
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>KULLANICI</th>
-                  <th>SON MESAJ</th>
-                  <th>SON SES</th>
-                  <th>İNGAME KATILIM</th>
-                </tr>
-              </thead>
-              <tbody id="activity-tbody">
-                <tr><td colspan="4"><div class="loader"><div class="loader-ring"></div></div></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══════════ BAN AFFI ═══════════ -->
+      <!-- BAN AFFI -->
       <div class="page" id="page-banaff">
-        <div class="page-header">
-          <h1>Ban Affı Talepleri</h1>
-          <p>Sunulan ban affı başvuruları</p>
-        </div>
+        <div class="page-header"><h1>Ban Affı Talepleri</h1></div>
         <div class="toolbar">
-          <button class="btn btn-secondary" onclick="loadBanAff()">🔄 Yenile</button>
           <button class="btn btn-danger" onclick="resetAllBanAffs()">🗑️ Tümünü Temizle</button>
-          <span id="banaff-count" style="font-size:13px;color:var(--text3)"></span>
         </div>
-        <div class="card">
-          <div id="banaff-list">
-            <div class="loader"><div class="loader-ring"></div></div>
-          </div>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end" id="banaff-pagination"></div>
+        <div class="card"><div id="banaff-list"></div></div>
       </div>
 
-      <!-- ═══════════ GUARD ═══════════ -->
+      <!-- GUARD -->
       <div class="page" id="page-guard">
-        <div class="page-header">
-          <h1>Guard Sistemi</h1>
-          <p>Sunucu koruma sisteminin canlı yönetimi</p>
-        </div>
+        <div class="page-header"><h1>Guard Sistemi</h1></div>
         <div class="grid grid-2">
-          <div class="card">
-            <div class="section-title">🛡️ Sistem Durumları (On/Off)</div>
-            <div id="guard-items">
-              <div class="loader"><div class="loader-ring"></div></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="section-title">⚙️ Limitler & Whitelist</div>
-            <div id="guard-limits"></div>
-            <div style="margin-top:20px">
-              <div class="section-title">👤 Whitelist Yönetimi</div>
-              <div style="display:flex;gap:10px;margin-bottom:10px">
-                <input type="text" id="wl-add-id" placeholder="Discord User ID">
-                <button class="btn btn-primary btn-sm" onclick="addWhitelist()">Ekle</button>
-              </div>
-              <div id="guard-whitelist-list">Yükleniyor...</div>
-            </div>
-          </div>
+          <div class="card"><h3>🛡️ Sistemler</h3><div id="guard-items"></div></div>
+          <div class="card"><h3>⚙️ Limitler</h3><div id="guard-limits"></div></div>
         </div>
       </div>
 
-      <!-- ═══════════ LOGS ═══════════ -->
+      <!-- LOGS -->
       <div class="page" id="page-logs">
-        <div class="page-header">
-          <h1>Loglar</h1>
-          <p>Sistem ve bot aktivite kayıtları</p>
-        </div>
-        <div class="card">
-          <div class="toolbar">
-            <select id="log-filter" onchange="loadLogs()" style="width:auto;min-width:150px">
-              <option value="">Tüm Kategoriler</option>
-              <option value="ban">Ban</option>
-              <option value="kick">Kick</option>
-              <option value="role">Rol</option>
-              <option value="message">Mesaj</option>
-              <option value="voice">Ses</option>
-              <option value="channel">Kanal</option>
-              <option value="guard">Guard</option>
-              <option value="fivem">FiveM</option>
-              <option value="ticket">Ticket</option>
-              <option value="banaff">Ban Affı</option>
-              <option value="mod">Mod</option>
-            </select>
-            <button class="btn btn-secondary" onclick="loadLogs()">🔄 Yenile</button>
-            <span id="log-count" style="font-size:12px;color:var(--text3)"></span>
-          </div>
-          <div id="logs-list">
-            <div class="loader"><div class="loader-ring"></div></div>
-          </div>
-        </div>
+        <div class="page-header"><h1>Loglar</h1></div>
+        <div class="card"><div id="logs-list"></div></div>
       </div>
 
-      <!-- ═══════════ SETTINGS ═══════════ -->
-      <div class="page" id="page-settings">
-        <div class="page-header">
-          <h1>Ayarlar</h1>
-          <p>Panel ve bot konfigürasyonu</p>
-        </div>
-        <div class="grid grid-2">
-          <div class="card">
-            <div class="section-title">🤖 Bot Bilgileri</div>
-            <div id="settings-bot">
-              <div class="loader"><div class="loader-ring"></div></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="section-title">🌐 API Bilgileri</div>
-            <div id="settings-api">
-              <div class="loader"><div class="loader-ring"></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- end page-content -->
-  </div><!-- end main -->
-</div><!-- end layout -->
-
-<!-- PLAYER DETAIL MODAL -->
-<div class="modal-backdrop" id="modal-player">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>Oyuncu Detay</h3>
-      <button class="modal-close" onclick="closeModal('modal-player')">✕</button>
     </div>
-    <div id="modal-player-body"></div>
   </div>
 </div>
 
 <script>
-// ═══════════ PARTICLES ═══════════
+// PARTICLES
 (function(){
   const c = document.getElementById('particles-canvas');
   const ctx = c.getContext('2d');
   let W, H, pts = [];
   function resize(){ W = c.width = window.innerWidth; H = c.height = window.innerHeight; }
   resize(); window.addEventListener('resize', resize);
-  for(let i=0;i<50;i++) pts.push({ x:Math.random()*2000, y:Math.random()*2000, vx:(Math.random()-0.5)*0.15, vy:(Math.random()-0.5)*0.15, r:Math.random()*1.5+0.3 });
+  for(let i=0;i<40;i++) pts.push({ x:Math.random()*2000, y:Math.random()*2000, vx:(Math.random()-0.5)*0.15, vy:(Math.random()-0.5)*0.15, r:Math.random()*1.5+0.3 });
   function draw(){
     ctx.clearRect(0,0,W,H);
     pts.forEach(p=>{
@@ -1198,19 +737,14 @@ input:checked + .slider:before { transform: translateX(18px); }
       if(p.x<0)p.x=W; if(p.x>W)p.x=0;
       if(p.y<0)p.y=H; if(p.y>H)p.y=0;
       ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fill();
     });
-    pts.forEach((a,i)=>pts.slice(i+1).forEach(b=>{
-      const dx=a.x-b.x, dy=a.y-b.y, d=Math.sqrt(dx*dx+dy*dy);
-      if(d<140){ ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
-        ctx.strokeStyle=`rgba(255,255,255,${0.04*(1-d/140)})`; ctx.lineWidth=0.6; ctx.stroke(); }
-    }));
     requestAnimationFrame(draw);
   }
   draw();
 })();
 
-// TOAST
+// UTILS & TOAST
 function showToast(msg, type='success'){
   const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
@@ -1220,13 +754,11 @@ function showToast(msg, type='success'){
   setTimeout(()=> toast.remove(), 4000);
 }
 
-// CONFIRM MODAL
 let confirmCallback = null;
 function openConfirmModal({ title, body, requireReason=true, onConfirm }){
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-body').textContent = body;
-  const wrap = document.getElementById('confirm-reason-wrap');
-  wrap.style.display = requireReason ? 'block' : 'none';
+  document.getElementById('confirm-reason-wrap').style.display = requireReason ? 'block' : 'none';
   document.getElementById('confirm-reason').value = '';
   confirmCallback = onConfirm;
   openModal('modal-confirm');
@@ -1241,62 +773,24 @@ document.getElementById('confirm-btn').addEventListener('click', ()=>{
   if(confirmCallback) confirmCallback(reason);
 });
 
-// NAV
-const PAGE_TITLES = {
-  dashboard:'Dashboard', players:'FiveM Oyuncuları', members:'Discord Üyeleri', bans:'Aktif Banlar', 'id-query':'ID Sorgu',
-  'tag-query':'Tag Sorgu', team:'Ekip / Kadro', events:'Etkinlikler',
-  activity:'Aktiflik', banaff:'Ban Affı', guard:'Guard', logs:'Loglar', settings:'Ayarlar'
-};
-let currentPage = 'dashboard';
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
+let currentPage = 'dashboard';
 function navigate(id, el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id)?.classList.add('active');
   if(el) el.classList.add('active');
-  else document.querySelector(`[data-page="${id}"]`)?.classList.add('active');
-  document.getElementById('topbar-title').textContent = PAGE_TITLES[id] || id;
   currentPage = id;
   
   if(id==='players') loadPlayers();
+  else if(id==='send-panel') loadChannelsAndRoles();
   else if(id==='bans') loadBans();
-  else if(id==='team') loadTeam();
-  else if(id==='events') loadEvents();
-  else if(id==='activity') loadActivity();
   else if(id==='banaff') loadBanAff();
   else if(id==='guard') loadGuard();
   else if(id==='logs') loadLogs();
-  else if(id==='settings') loadSettings();
-  closeMobileSidebar();
 }
-
-// SIDEBAR & UTILS
-let sidebarCollapsed = false;
-function toggleSidebar(){
-  sidebarCollapsed = !sidebarCollapsed;
-  document.getElementById('sidebar').classList.toggle('collapsed', sidebarCollapsed);
-  document.getElementById('main').classList.toggle('collapsed', sidebarCollapsed);
-}
-function openMobileSidebar(){ document.getElementById('sidebar').classList.add('mobile-open'); document.getElementById('mobile-overlay').classList.add('open'); }
-function closeMobileSidebar(){ document.getElementById('sidebar').classList.remove('mobile-open'); document.getElementById('mobile-overlay').classList.remove('open'); }
-function openModal(id){ document.getElementById(id).classList.add('open'); }
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-
-function fmt(n){ return Number(n).toLocaleString('tr-TR'); }
-function timeAgo(ts){
-  if(!ts) return 'Hiç';
-  const d=Date.now()-ts;
-  const m=Math.floor(d/60000);
-  if(m<1) return 'Az önce';
-  if(m<60) return `${m}dk önce`;
-  const h=Math.floor(m/60);
-  if(h<24) return `${h}sa önce`;
-  return `${Math.floor(h/24)}g önce`;
-}
-function pingClass(p){ return p<60?'ping-low':p<120?'ping-mid':'ping-high'; }
-function showLoader(id){ document.getElementById(id).innerHTML='<div class="loader"><div class="loader-ring"></div><span class="loader-text">Yükleniyor...</span></div>'; }
-function showError(id, msg){ document.getElementById(id).innerHTML=`<div class="error-state">⚠️ ${msg}</div>`; }
-function showEmpty(id, title='Veri Yok', sub='Henüz kayıt bulunmuyor.'){ document.getElementById(id).innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><h4>${title}</h4><p>${sub}</p></div>`; }
 
 async function apiFetch(path, method='GET', body=null){
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -1307,64 +801,69 @@ async function apiFetch(path, method='GET', body=null){
   return data;
 }
 
+// PANEL SİSTEMLERİ FORM
+async function loadChannelsAndRoles(){
+  try {
+    const chData = await apiFetch('/api/discord/channels');
+    const chSelect = document.getElementById('panel-channel');
+    chSelect.innerHTML = chData.channels.map(c => `<option value="${c.id}">#${c.name}</option>`).join('');
+
+    const roleData = await apiFetch('/api/discord/roles');
+    const roleSelect = document.getElementById('panel-role');
+    roleSelect.innerHTML = '<option value="">Etiketleme Yok</option>' + roleData.roles.map(r => `<option value="${r.id}">@${r.name}</option>`).join('');
+  } catch(e){}
+}
+
+function updatePanelForm(){
+  const type = document.getElementById('panel-type').value;
+  document.getElementById('panel-limit-wrap').style.display = (type === 'ingame' || type === 'etkinlik') ? 'block' : 'none';
+  document.getElementById('panel-duration-wrap').style.display = (type === 'ingame' || type === 'aktiflik') ? 'block' : 'none';
+  document.getElementById('panel-role-wrap').style.display = (type === 'aktiflik') ? 'block' : 'none';
+}
+
+async function submitSendPanel(){
+  try {
+    const body = {
+      panelType: document.getElementById('panel-type').value,
+      channelId: document.getElementById('panel-channel').value,
+      title: document.getElementById('panel-title').value,
+      limit: document.getElementById('panel-limit').value,
+      duration: document.getElementById('panel-duration').value,
+      roleId: document.getElementById('panel-role').value
+    };
+    await apiFetch('/api/admin/send-panel', 'POST', body);
+    showToast('Panel Discord kanalına başarıyla gönderildi!');
+  } catch(e){ showToast(e.message, 'error'); }
+}
+
 // DASHBOARD
 async function loadDashboard(){
   try{
     const d=await apiFetch('/api/dashboard');
-    document.getElementById('bot-status-dot').className='status-dot'+(d.bot.online?'':' offline');
-    document.getElementById('topbar-uptime').textContent=d.bot.uptime||'—';
-    document.getElementById('topbar-ping').textContent=`${d.bot.ping??'—'} ms`;
     document.getElementById('dash-players').textContent=d.fivem.playerCount;
-    document.getElementById('dash-cap').textContent=`/ ${fmt(d.fivem.maxPlayers)} kapasite`;
-    document.getElementById('dash-ping-avg').textContent=d.fivem.avgPing;
-    document.getElementById('dash-server-status').innerHTML=d.fivem.online?'<span class="badge badge-green">● Online</span>':'<span class="badge badge-red">● Offline</span>';
     document.getElementById('dash-uptime').textContent=d.bot.uptime;
-    document.getElementById('dash-bot-ping').textContent=`WS: ${d.bot.ping}ms`;
     document.getElementById('dash-staff').textContent=d.stats.staffCount;
-    document.getElementById('dash-banaff').textContent=`${d.stats.banAffCount} ban affı talebi`;
-    renderRecentLogs(d.recentLogs);
+    document.getElementById('dash-banaff').textContent=d.stats.banAffCount;
   }catch(e){}
 }
 
-function renderRecentLogs(logs){
-  if(!logs||!logs.length){ showEmpty('dash-logs','Aktivite Yok'); return; }
-  document.getElementById('dash-logs').innerHTML=logs.map(l=>`
-    <div class="log-entry">
-      <div class="log-dot ${l.category}"></div>
-      <div class="log-body">
-        <div class="log-category">${l.category}</div>
-        <div class="log-action">${l.action}</div>
-        ${l.detail?`<div class="log-detail">${l.detail}</div>`:''}
-      </div>
-      <div class="log-time">${timeAgo(l.ts)}</div>
-    </div>
-  `).join('');
-}
-
-// PLAYERS (FIVEM)
-let allPlayers=[];
+// PLAYERS
 async function loadPlayers(){
   try{
     const d=await apiFetch('/api/fivem/players');
-    allPlayers=d.players||[];
-    filterPlayers();
+    document.getElementById('players-tbody').innerHTML = (d.players||[]).map(p=>`
+      <tr>
+        <td>${p.id}</td>
+        <td><strong>${p.name}</strong></td>
+        <td>${p.ping}ms</td>
+        <td>${p.discord||'—'}</td>
+        <td>
+          ${p.discord ? `<button class="btn btn-danger btn-sm" onclick="promptBan('${p.discord}')">Ban</button>
+          <button class="btn btn-secondary btn-sm" onclick="promptKick('${p.discord}')">Kick</button>` : '—'}
+        </td>
+      </tr>
+    `).join('');
   }catch(e){}
-}
-function filterPlayers(){
-  const q=(document.getElementById('players-search').value||'').toLowerCase();
-  let list=[...allPlayers].filter(p=> !q||String(p.id).includes(q)||p.name.toLowerCase().includes(q)||(p.discord&&p.discord.includes(q)) );
-  document.getElementById('players-tbody').innerHTML=list.map(p=>`
-    <tr>
-      <td><span class="mono">${p.id}</span></td>
-      <td><strong>${escHtml(p.name)}</strong></td>
-      <td><span class="ping-val ${pingClass(p.ping)}">${p.ping}ms</span></td>
-      <td><span class="mono">${p.discord||'—'}</span></td>
-      <td>
-        ${p.discord ? `<button class="btn btn-danger btn-sm" onclick="promptBan('${p.discord}')">Ban</button>
-        <button class="btn btn-secondary btn-sm" onclick="promptKick('${p.discord}')">Kick</button>` : '—'}
-      </td>
-    </tr>
-  `).join('');
 }
 
 // DISCORD MEMBERS
@@ -1374,51 +873,34 @@ async function searchMembers(){
     const d = await apiFetch(`/api/members?q=${encodeURIComponent(q)}`);
     document.getElementById('members-tbody').innerHTML = d.members.map(m => `
       <tr>
-        <td><strong>${escHtml(m.tag)}</strong></td>
-        <td><span class="mono">${m.id}</span></td>
+        <td><strong>${m.tag}</strong></td>
+        <td><code>${m.id}</code></td>
         <td>${new Date(m.joinedAt).toLocaleDateString('tr-TR')}</td>
         <td>
           <button class="btn btn-danger btn-sm" onclick="promptBan('${m.id}')">Ban</button>
           <button class="btn btn-secondary btn-sm" onclick="promptKick('${m.id}')">Kick</button>
-          <button class="btn btn-secondary btn-sm" onclick="promptTimeout('${m.id}')">Timeout</button>
         </td>
       </tr>
     `).join('');
   }catch(e){ showToast(e.message, 'error'); }
 }
 
-// BANS
-async function loadBans(){
-  try {
-    const d = await apiFetch('/api/bans');
-    document.getElementById('bans-tbody').innerHTML = d.bans.map(b => `
-      <tr>
-        <td><strong>${escHtml(b.tag)}</strong></td>
-        <td><span class="mono">${b.userId}</span></td>
-        <td>${escHtml(b.reason)}</td>
-        <td><button class="btn btn-primary btn-sm" onclick="unbanUser('${b.userId}')">Ban Kaldır</button></td>
-      </tr>
-    `).join('');
-  } catch(e){}
-}
-
-// PROMPT ACTIONS
+// BANS & PROMPTS
 function promptBan(userId){
   openConfirmModal({
-    title: 'Kullanıcı Banla',
-    body: `${userId} ID'li kullanıcıyı yasaklamak üzeresiniz.`,
+    title: 'Kullanıcıyı Banla',
+    body: `${userId} ID'li kullanıcı banlanacak.`,
     onConfirm: async (reason) => {
       await apiFetch('/api/admin/ban', 'POST', { userId, reason });
       showToast('Kullanıcı banlandı');
-      if(currentPage==='bans') loadBans();
     }
   });
 }
 
 function promptKick(userId){
   openConfirmModal({
-    title: 'Kullanıcı At (Kick)',
-    body: `${userId} ID'li kullanıcıyı sunucudan atmak üzeresiniz.`,
+    title: 'Kullanıcıyı At (Kick)',
+    body: `${userId} ID'li kullanıcı atılacak.`,
     onConfirm: async (reason) => {
       await apiFetch('/api/admin/kick', 'POST', { userId, reason });
       showToast('Kullanıcı atıldı');
@@ -1426,15 +908,18 @@ function promptKick(userId){
   });
 }
 
-function promptTimeout(userId){
-  openConfirmModal({
-    title: 'Timeout Uygula (Dakika)',
-    body: `${userId} ID'li kullanıcıya timeout uygulanacak.`,
-    onConfirm: async (reason) => {
-      await apiFetch('/api/admin/timeout', 'POST', { userId, minutes: 10, reason });
-      showToast('Timeout uygulandı');
-    }
-  });
+async function loadBans(){
+  try {
+    const d = await apiFetch('/api/bans');
+    document.getElementById('bans-tbody').innerHTML = d.bans.map(b => `
+      <tr>
+        <td><strong>${b.tag}</strong></td>
+        <td><code>${b.userId}</code></td>
+        <td>${b.reason}</td>
+        <td><button class="btn btn-primary btn-sm" onclick="unbanUser('${b.userId}')">Ban Kaldır</button></td>
+      </tr>
+    `).join('');
+  } catch(e){}
 }
 
 async function unbanUser(userId){
@@ -1448,11 +933,8 @@ async function loadBanAff(){
   try {
     const d = await apiFetch('/api/ban-aff');
     document.getElementById('banaff-list').innerHTML = d.records.map(r => `
-      <div style="padding:12px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <strong>${r.userTag || r.userId}</strong> <span class="mono">(${r.userId})</span>
-          <p style="font-size:12px;color:var(--text2);margin-top:4px">${escHtml(r.reason)}</p>
-        </div>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
+        <div><strong>${r.userTag||r.userId}</strong><p style="font-size:12px">${r.reason}</p></div>
         <button class="btn btn-danger btn-sm" onclick="deleteBanAff('${r.id}')">Sil</button>
       </div>
     `).join('');
@@ -1461,14 +943,14 @@ async function loadBanAff(){
 
 async function deleteBanAff(id){
   await apiFetch('/api/admin/ban-aff/delete', 'POST', { id });
-  showToast('Kayıt silindi');
+  showToast('Talep silindi');
   loadBanAff();
 }
 
 async function resetAllBanAffs(){
   openConfirmModal({
     title: 'Tüm Ban Affı Taleplerini Sıfırla',
-    body: 'Tüm başvurular silinecektir. Emin misiniz?',
+    body: 'Tüm başvurular silinecektir.',
     requireReason: false,
     onConfirm: async () => {
       await apiFetch('/api/admin/ban-aff/reset', 'POST');
@@ -1482,39 +964,26 @@ async function resetAllBanAffs(){
 async function loadGuard(){
   try {
     const d = await apiFetch('/api/guard');
-    document.getElementById('guard-items').innerHTML = `
-      <div class="guard-item">
-        <div class="guard-item-info"><div class="guard-item-title">Genel Guard</div></div>
-        <label class="switch"><input type="checkbox" ${d.enabled?'checked':''} onchange="toggleGuardSys('general', this.checked)"><span class="slider"></span></label>
-      </div>
-      ${Object.keys(d.systems).map(sys => `
-        <div class="guard-item">
-          <div class="guard-item-info"><div class="guard-item-title">${sys.toUpperCase()} Koruması</div></div>
-          <label class="switch"><input type="checkbox" ${d.systems[sys]?'checked':''} onchange="toggleGuardSys('${sys}', this.checked)"><span class="slider"></span></label>
-        </div>
-      `).join('')}
-    `;
-
-    document.getElementById('guard-limits').innerHTML = Object.keys(d.limits).map(sys => `
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
-        <span style="flex:1;font-size:13px">${sys.toUpperCase()} Limiti</span>
-        <input type="number" id="limit-${sys}" value="${d.limits[sys]}" style="width:70px">
-        <button class="btn btn-secondary btn-sm" onclick="saveGuardLimit('${sys}')">Kaydet</button>
+    document.getElementById('guard-items').innerHTML = Object.keys(d.systems).map(sys => `
+      <div style="display:flex;justify-content:space-between;padding:8px 0">
+        <span style="text-transform:uppercase">${sys} Guard</span>
+        <label class="switch"><input type="checkbox" ${d.systems[sys]?'checked':''} onchange="toggleGuardSys('${sys}', this.checked)"><span class="slider"></span></label>
       </div>
     `).join('');
 
-    document.getElementById('guard-whitelist-list').innerHTML = d.whitelist.map(id => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
-        <span class="mono">${id}</span>
-        <button class="btn btn-danger btn-sm" onclick="removeWhitelist('${id}')">Kaldır</button>
+    document.getElementById('guard-limits').innerHTML = Object.keys(d.limits).map(sys => `
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+        <span style="flex:1;text-transform:uppercase">${sys} Limiti</span>
+        <input type="number" id="limit-${sys}" value="${d.limits[sys]}" style="width:60px">
+        <button class="btn btn-secondary btn-sm" onclick="saveGuardLimit('${sys}')">Kaydet</button>
       </div>
-    `).join('') || 'Whitelist boş.';
+    `).join('');
   } catch(e){}
 }
 
 async function toggleGuardSys(system, enabled){
   await apiFetch('/api/admin/guard/toggle', 'POST', { system, enabled });
-  showToast('Guard ayarı güncellendi');
+  showToast('Guard güncellendi');
 }
 
 async function saveGuardLimit(system){
@@ -1523,44 +992,19 @@ async function saveGuardLimit(system){
   showToast('Limit güncellendi');
 }
 
-async function addWhitelist(){
-  const userId = document.getElementById('wl-add-id').value.trim();
-  if(!userId) return;
-  await apiFetch('/api/admin/whitelist/add', 'POST', { userId });
-  document.getElementById('wl-add-id').value = '';
-  showToast('Whitelist eklendi');
-  loadGuard();
-}
-
-async function removeWhitelist(userId){
-  await apiFetch('/api/admin/whitelist/remove', 'POST', { userId });
-  showToast('Whitelist çıkarıldı');
-  loadGuard();
-}
-
 // LOGS
 async function loadLogs(){
   try {
-    const cat = document.getElementById('log-filter').value;
-    const d = await apiFetch('/api/logs' + (cat ? '?category=' + cat : ''));
+    const d = await apiFetch('/api/logs');
     document.getElementById('logs-list').innerHTML = d.logs.map(l => `
-      <div class="log-entry">
-        <div class="log-dot ${l.category}"></div>
-        <div class="log-body">
-          <div class="log-category">${l.category}</div>
-          <div class="log-action">${escHtml(l.action)}</div>
-          ${l.detail ? `<div class="log-detail">${escHtml(l.detail)}</div>` : ''}
-        </div>
-        <div class="log-time">${timeAgo(l.ts)}</div>
+      <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <strong>[${l.category.toUpperCase()}]</strong> ${l.action} — ${l.detail} <span style="color:var(--text3)">(${l.executor||'System'})</span>
       </div>
     `).join('');
   } catch(e){}
 }
 
-function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
 loadDashboard();
-setInterval(()=>{ if(currentPage==='dashboard') loadDashboard(); }, 30000);
 </script>
 </body>
 </html>
