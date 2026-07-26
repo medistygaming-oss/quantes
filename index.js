@@ -432,7 +432,7 @@ function ingameEmbed(guild, data) {
   const rem = data.endsAt ? data.endsAt - Date.now() : null;
   return createEmbed(guild, {
     title: line(EMOJI.star, data.title),
-    description: `\`[ MAIN KADRO: ${data.users.length} / ${data.limit} ]\`\n\n${EMOJI.info} ・ **Süre:** ${data.closed ? "Kapandı" : (rem !== null ? formatRemaining(rem) : "Belirsiz")}\n\n${EMOJI.right} ・ **Katılımcılar**\n${list}`,
+    description: `\`[ MAIN KADRO: ${data.users.length} / ${data.limit} ]\`\n\n${EMOJI.info} ・ **Süre:** ${data.closed ? "Kapandi" : (rem !== null ? formatRemaining(rem) : "Belirsiz")}\n\n${EMOJI.right} ・ **Katılımcılar**\n${list}`,
     image: TICKET_BANNER_URL
   });
 }
@@ -629,6 +629,28 @@ app.get("/api/fivem/tag/:name", async (req, res) => {
       });
     res.json({ results, total: results.length });
   } catch (e) { res.status(503).json({ error: e.message, results: [], total: 0 }); }
+});
+
+app.get("/api/discord/channels", async (req, res) => {
+  try {
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild yok" });
+    const textChannels = guild.channels.cache
+      .filter(c => c.type === ChannelType.GuildText)
+      .map(c => ({ id: c.id, name: c.name }));
+    res.json({ channels: textChannels });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/discord/roles", async (req, res) => {
+  try {
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild yok" });
+    const roles = guild.roles.cache
+      .filter(r => r.name !== "@everyone")
+      .map(r => ({ id: r.id, name: r.name, color: r.hexColor }));
+    res.json({ roles });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get("/api/members", async (req, res) => {
@@ -869,6 +891,53 @@ app.post("/api/admin/ot/update", (req, res) => {
     saveEnvanter();
     pushLog("weed", "OT Güncellendi", `${userId} -> ${isReset ? "Sıfırlandı" : amount}`, "Web Panel");
     res.json({ success: true, ot: envanter[userId].ot });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// WEB PANEL ÜZERİNDEN DISCORD KANALLARINA PANEL GÖNDERME API
+app.post("/api/admin/send-panel", async (req, res) => {
+  try {
+    const { panelType, channelId, title, limit, duration, roleId } = req.body;
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı" });
+    const targetChannel = guild.channels.cache.get(channelId);
+    if (!targetChannel) return res.status(400).json({ error: "Seçilen Discord kanalı bulunamadı" });
+
+    if (panelType === "ticket") {
+      const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("ticket_open").setStyle(ButtonStyle.Primary).setLabel(title || "Başvuru Yap").setEmoji("📝"));
+      await targetChannel.send({ embeds: [createEmbed(guild, { description: `${EMOJI.right} ・ Formu doldurduktan sonra bekleyiniz, en kısa sürede ilgilenilecektir.`, image: TICKET_BANNER_URL })], components: [row] });
+      pushLog("ticket", "Ticket Paneli Gönderildi", `#${targetChannel.name}`, "Web Panel");
+    } else if (panelType === "banaff") {
+      const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("banaff_open").setLabel("Banlıyım!").setStyle(ButtonStyle.Secondary).setEmoji("📝"));
+      await targetChannel.send({ embeds: [createEmbed(guild, { title: line(EMOJI.ban, "ʙᴀɴ ᴀꜰꜰɪ"), description: `${EMOJI.right} ・ Banlı olup ban affı isteyen kişiler butona tıklayabilir.`, image: TICKET_BANNER_URL })], components: [row] });
+      pushLog("banaff", "Ban Affı Paneli Gönderildi", `#${targetChannel.name}`, "Web Panel");
+    } else if (panelType === "ingame") {
+      const dMs = parseDurationToMs(duration);
+      const data = { title: title || "Kadro Paneli", limit: parseInt(limit) || 10, users: [], endsAt: dMs ? Date.now() + dMs : null, closed: false, timer: null, channelId: targetChannel.id, ownerId: "WebPanel" };
+      const msg = await targetChannel.send({ embeds: [ingameEmbed(guild, data)], components: [ingameRows(false)] });
+      ingameList.set(msg.id, data);
+      if (dMs) data.timer = setTimeout(() => closeIngame(guild, msg.id, "Süre doldu"), dMs);
+      pushLog("fivem", "Ingame Paneli Oluşturuldu", `#${targetChannel.name} | ${title}`, "Web Panel");
+    } else if (panelType === "etkinlik") {
+      const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("temp").setLabel("Katıldım").setStyle(ButtonStyle.Success).setEmoji("✅"));
+      const msg = await targetChannel.send({ embeds: [createEmbed(guild, { title: line(EMOJI.star, title || "Etkinlik"), description: `👥 **Katılanlar (0/${limit || 10})**` })], components: [row] });
+      row.components[0].setCustomId(`etkinlik_join_${msg.id}`);
+      await msg.edit({ components: [row] });
+      etkinlikList.set(msg.id, { users: [], limit: parseInt(limit) || 10, title: title || "Etkinlik", closed: false });
+      pushLog("mod", "Etkinlik Paneli Oluşturuldu", `#${targetChannel.name} | ${title}`, "Web Panel");
+    } else if (panelType === "aktiflik") {
+      const dMs = parseDurationToMs(duration || "30dk");
+      if (!dMs || dMs <= 0) return res.status(400).json({ error: "Geçersiz süre" });
+      const data = { roleId: roleId, dMs, endsAt: Date.now() + dMs, joined: new Set(), closed: false, timer: null, channelId: targetChannel.id };
+      const msg = await targetChannel.send({ content: roleId ? `<@&${roleId}>` : null, embeds: [aktiflikEmbed(guild, data)], components: [aktiflikRows(false)] });
+      aktiflikList.set(msg.id, data);
+      data.timer = setTimeout(() => closeAktiflik(guild, msg.id, "Süre doldu").catch(() => {}), dMs);
+      pushLog("mod", "Aktiflik Testi Başlatıldı", `#${targetChannel.name}`, "Web Panel");
+    } else {
+      return res.status(400).json({ error: "Bilinmeyen panel türü" });
+    }
+
+    res.json({ success: true, message: "Panel Discord kanalına başarıyla gönderildi!" });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
