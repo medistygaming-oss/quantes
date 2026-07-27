@@ -963,6 +963,16 @@ let AUTH = { secret: '', discordId: '', role: 'viewer' };
 const ROLE_LEVELS = { owner: 4, admin: 3, moderator: 2, staff: 1, viewer: 0 };
 function hasRole(min) { return ROLE_LEVELS[AUTH.role] >= ROLE_LEVELS[min]; }
 
+// ══════════════════════════════════════════
+// DATA REGISTRY (dinamik onclick içine ham JSON gömmek yerine
+// nesneleri burada tutup id ile referans veriyoruz — HTML attribute
+// içine tırnak karakteri sızdırıp handler'ı bozan eski yöntemin yerine geçti)
+// ══════════════════════════════════════════
+let __DATA_REG = {};
+let __DATA_SEQ = 0;
+function regData(obj) { const id = 'd' + (__DATA_SEQ++); __DATA_REG[id] = obj; return id; }
+function getData(id) { return __DATA_REG[id]; }
+
 async function doLogin() {
   const btn = document.getElementById('login-btn');
   const secret = document.getElementById('login-secret').value;
@@ -1225,38 +1235,39 @@ function filterPlayers() {
       <td><span class="mono" style="font-size:11px">${p.steam ? p.steam.slice(0, 20) + '…' : '—'}</span></td>
       <td>
         <div class="action-menu-wrap">
-          <button class="action-menu-btn" onclick="showPlayerMenu(event,${JSON.stringify(p).replace(/"/g,'&quot;')})">⋮</button>
+          <button class="action-menu-btn" onclick="showPlayerMenu(event,'${regData(p)}')">⋮</button>
         </div>
       </td>
     </tr>
   `).join('');
 }
 
-function showPlayerMenu(e, p) {
+function showPlayerMenu(e, pId) {
   e.stopPropagation();
+  const p = getData(pId);
   const btn = e.currentTarget;
   closeAllMenus();
   const items = [
-    { icon: 'ℹ️', label: 'Detayları Gör', action: `showPlayerModal(${JSON.stringify(JSON.stringify(p))})` },
+    { icon: 'ℹ️', label: 'Detayları Gör', action: `showPlayerModal('${pId}')` },
     { icon: '🔍', label: 'ID Sorgula', action: `navigateQueryId(${p.id})` },
     'sep',
-    hasRole('moderator') ? { icon: '👢', label: 'Kick (Discord)', cls: 'warn', action: `discordKickByFivem(${JSON.stringify(JSON.stringify(p))})` } : null,
-    hasRole('admin') ? { icon: '🔨', label: 'Ban (Discord)', cls: 'danger', action: `discordBanByFivem(${JSON.stringify(JSON.stringify(p))})` } : null,
+    hasRole('moderator') ? { icon: '👢', label: 'Kick (Discord)', cls: 'warn', action: `discordKickByFivem('${pId}')` } : null,
+    hasRole('admin') ? { icon: '🔨', label: 'Ban (Discord)', cls: 'danger', action: `discordBanByFivem('${pId}')` } : null,
     hasRole('admin') ? { icon: '✅', label: "Guard Whitelist'e Ekle", cls: 'success', action: `wlAddFivem('${p.discord || ''}')` } : null,
   ].filter(Boolean);
   toggleMenu(btn, items);
 }
 
-async function discordKickByFivem(pStr) {
-  const p = typeof pStr === 'string' ? JSON.parse(pStr) : pStr;
+async function discordKickByFivem(pId) {
+  const p = getData(pId);
   if (!p.discord) { toast('warning', 'Discord ID Yok', 'Bu oyuncunun Discord ID\'si bulunamadı.'); return; }
   const r = await showConfirm({ title: 'Kick', body: `<b>${escHtml(p.name)}</b> (Discord: ${p.discord}) sunucudan atılacak.`, warning: 'Bu işlem geri alınamaz!', needReason: true });
   if (!r.confirmed) return;
   try { await adminPost('/api/admin/kick', { targetId: p.discord, reason: r.reason }); toast('success', 'Kick Başarılı', p.name + ' atıldı.'); } catch(e) { toast('error', 'Hata', e.message); }
 }
 
-async function discordBanByFivem(pStr) {
-  const p = typeof pStr === 'string' ? JSON.parse(pStr) : pStr;
+async function discordBanByFivem(pId) {
+  const p = getData(pId);
   if (!p.discord) { toast('warning', 'Discord ID Yok', 'Bu oyuncunun Discord ID\'si bulunamadı.'); return; }
   const r = await showConfirm({ title: 'Ban', body: `<b>${escHtml(p.name)}</b> (Discord: ${p.discord}) banlanacak.`, warning: 'Bu işlem Discord sunucusundan kalıcı olarak banlar!', needReason: true });
   if (!r.confirmed) return;
@@ -1270,8 +1281,8 @@ async function wlAddFivem(discordId) {
 
 function navigateQueryId(id) { document.getElementById('id-input').value = id; navigate('id-query', document.querySelector('[data-page="id-query"]')); queryId(); }
 
-function showPlayerModal(pStr) {
-  const p = typeof pStr === 'string' ? JSON.parse(pStr) : pStr;
+function showPlayerModal(pId) {
+  const p = getData(pId);
   document.getElementById('modal-player-body').innerHTML = `
     <div class="modal-field"><label>İSİM</label><div class="val">${escHtml(p.name)}</div></div>
     <div class="modal-field"><label>FiveM ID</label><div class="val">${p.id}</div></div>
@@ -1351,33 +1362,37 @@ function filterMembers() {
       <td style="font-size:12px;color:var(--text3)">${fmtDate(m.joinedAt)}</td>
       <td>
         <div class="action-menu-wrap">
-          <button class="action-menu-btn" onclick="showMemberMenu(event,${JSON.stringify(JSON.stringify(m))})">⋮</button>
+          <button class="action-menu-btn" onclick="showMemberMenu(event,'${regData(m)}')">⋮</button>
         </div>
       </td>
     </tr>
   `).join('');
 }
 
-function showMemberMenu(e, mStr) {
+function showMemberMenu(e, mId) {
   e.stopPropagation();
-  const m = JSON.parse(mStr);
+  const m = getData(mId);
   closeAllMenus();
   const btn = e.currentTarget;
   const items = [
-    { icon: 'ℹ️', label: 'Detayları Gör', action: `showMemberModal(${JSON.stringify(JSON.stringify(m))})` },
+    { icon: 'ℹ️', label: 'Detayları Gör', action: `showMemberModal('${mId}')` },
     'sep',
-    hasRole('moderator') ? { icon: '⏱️', label: 'Timeout', cls: 'warn', action: `memberTimeout(${JSON.stringify(JSON.stringify(m))})` } : null,
-    hasRole('moderator') ? { icon: '👢', label: 'Kick', cls: 'warn', action: `memberKick(${JSON.stringify(JSON.stringify(m))})` } : null,
-    hasRole('admin') ? { icon: '🔨', label: 'Ban', cls: 'danger', action: `memberBan(${JSON.stringify(JSON.stringify(m))})` } : null,
-    hasRole('admin') ? { icon: '✏️', label: 'Nickname Değiştir', action: `memberNick(${JSON.stringify(JSON.stringify(m))})` } : null,
-    hasRole('admin') ? { icon: '➕', label: 'Rol Ekle', action: `memberAddRole(${JSON.stringify(JSON.stringify(m))})` } : null,
-    hasRole('admin') ? { icon: '➖', label: 'Rol Kaldır', action: `memberRemoveRole(${JSON.stringify(JSON.stringify(m))})` } : null,
+    hasRole('moderator') ? { icon: '⏱️', label: 'Timeout', cls: 'warn', action: `memberTimeout('${mId}')` } : null,
+    hasRole('moderator') ? { icon: '🔇', label: 'Mute (Ses)', cls: 'warn', action: `memberMute('${mId}')` } : null,
+    hasRole('moderator') ? { icon: '🔊', label: 'Unmute (Ses)', action: `memberUnmute('${mId}')` } : null,
+    hasRole('moderator') ? { icon: '👢', label: 'Kick', cls: 'warn', action: `memberKick('${mId}')` } : null,
+    hasRole('admin') ? { icon: '🔨', label: 'Ban', cls: 'danger', action: `memberBan('${mId}')` } : null,
+    'sep',
+    hasRole('admin') ? { icon: '✏️', label: 'Nickname Değiştir', action: `memberNick('${mId}')` } : null,
+    hasRole('admin') ? { icon: '➕', label: 'Rol Ekle', action: `memberAddRole('${mId}')` } : null,
+    hasRole('admin') ? { icon: '➖', label: 'Rol Kaldır', action: `memberRemoveRole('${mId}')` } : null,
+    hasRole('admin') ? { icon: '✅', label: "Whitelist'e Ekle", cls: 'success', action: `memberWhitelistAdd('${mId}')` } : null,
   ].filter(Boolean);
   toggleMenu(btn, items);
 }
 
-async function showMemberModal(mStr) {
-  const m = JSON.parse(mStr);
+async function showMemberModal(mId) {
+  const m = getData(mId);
   const rolesHtml = m.roles.length ? m.roles.slice(0, 8).map(r => `<span class="badge badge-gray" style="background:${r.color}22;border-color:${r.color}44;color:${r.color}">${escHtml(r.name)}</span>`).join(' ') : '—';
   document.getElementById('modal-member-body').innerHTML = `
     <div class="modal-field"><label>KULLANICI</label><div class="val">${escHtml(m.displayName)} (${escHtml(m.tag)})</div></div>
@@ -1387,30 +1402,30 @@ async function showMemberModal(mStr) {
     <div class="modal-field"><label>OT</label><div class="val">${fmt(m.ot)} OT</div></div>
     <div class="modal-field"><label>KATILIM</label><div class="val">${fmtDate(m.joinedAt)}</div></div>
     ${hasRole('moderator') ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-      ${hasRole('moderator') ? `<button class="btn btn-warn btn-sm" onclick="closeModal('modal-member');memberKick('${JSON.stringify(m).replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">👢 Kick</button>` : ''}
-      ${hasRole('admin') ? `<button class="btn btn-danger btn-sm" onclick="closeModal('modal-member');memberBan('${JSON.stringify(m).replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">🔨 Ban</button>` : ''}
-      ${hasRole('admin') ? `<button class="btn btn-secondary btn-sm" onclick="closeModal('modal-member');memberNick('${JSON.stringify(m).replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">✏️ Nick</button>` : ''}
+      ${hasRole('moderator') ? `<button class="btn btn-warn btn-sm" onclick="closeModal('modal-member');memberKick('${mId}')">👢 Kick</button>` : ''}
+      ${hasRole('admin') ? `<button class="btn btn-danger btn-sm" onclick="closeModal('modal-member');memberBan('${mId}')">🔨 Ban</button>` : ''}
+      ${hasRole('admin') ? `<button class="btn btn-secondary btn-sm" onclick="closeModal('modal-member');memberNick('${mId}')">✏️ Nick</button>` : ''}
     </div>` : ''}
   `;
   openModal('modal-member');
 }
 
-async function memberKick(mStr) {
-  const m = JSON.parse(mStr);
+async function memberKick(mId) {
+  const m = getData(mId);
   const r = await showConfirm({ title: 'Kick', body: `<b>${escHtml(m.displayName)}</b> sunucudan atılacak.`, warning: 'Bu işlem geri alınamaz!', needReason: true });
   if (!r.confirmed) return;
   try { await adminPost('/api/admin/kick', { targetId: m.id, reason: r.reason }); toast('success', 'Kick Başarılı', m.displayName + ' atıldı.'); loadMembers(); } catch(e) { toast('error', 'Hata', e.message); }
 }
 
-async function memberBan(mStr) {
-  const m = JSON.parse(mStr);
+async function memberBan(mId) {
+  const m = getData(mId);
   const r = await showConfirm({ title: 'Ban', body: `<b>${escHtml(m.displayName)}</b> sunucudan banlanacak.`, warning: 'Bu işlem Discord\'dan kalıcı ban atar!', needReason: true, okLabel: 'Banla', okClass: 'btn-danger' });
   if (!r.confirmed) return;
   try { await adminPost('/api/admin/ban', { targetId: m.id, reason: r.reason }); toast('success', 'Ban Başarılı', m.displayName + ' banlandı.'); loadMembers(); loadBans(); } catch(e) { toast('error', 'Hata', e.message); }
 }
 
-async function memberTimeout(mStr) {
-  const m = JSON.parse(mStr);
+async function memberTimeout(mId) {
+  const m = getData(mId);
   const durations = [{ label: '5 dakika', ms: 300000 }, { label: '10 dakika', ms: 600000 }, { label: '1 saat', ms: 3600000 }, { label: '1 gün', ms: 86400000 }, { label: '1 hafta', ms: 604800000 }];
   const r = await showConfirm({ title: 'Timeout', body: `<b>${escHtml(m.displayName)}</b> timeout uygulanacak.<br><br><label style="font-size:12px;color:var(--text2)">Süre:</label><select id="timeout-dur" style="margin-top:6px;display:block">${durations.map(d => `<option value="${d.ms}">${d.label}</option>`).join('')}</select>`, needReason: true });
   if (!r.confirmed) return;
@@ -1418,15 +1433,29 @@ async function memberTimeout(mStr) {
   try { await adminPost('/api/admin/timeout', { targetId: m.id, durationMs, reason: r.reason }); toast('success', 'Timeout Uygulandı', m.displayName); } catch(e) { toast('error', 'Hata', e.message); }
 }
 
-async function memberNick(mStr) {
-  const m = JSON.parse(mStr);
+async function memberMute(mId) {
+  const m = getData(mId);
+  const r = await showConfirm({ title: 'Mute (Ses)', body: `<b>${escHtml(m.displayName)}</b> ses kanalında susturulacak.<br><span style="font-size:12px;color:var(--text3)">Not: Kullanıcı şu anda bir ses kanalında olmalıdır.</span>`, needReason: true, okLabel: 'Mute', okClass: 'btn-warn' });
+  if (!r.confirmed) return;
+  try { await adminPost('/api/admin/mute', { targetId: m.id, reason: r.reason }); toast('success', 'Mute Uygulandı', m.displayName); } catch(e) { toast('error', 'Hata', e.message); }
+}
+
+async function memberUnmute(mId) {
+  const m = getData(mId);
+  const r = await showConfirm({ title: 'Unmute (Ses)', body: `<b>${escHtml(m.displayName)}</b> kullanıcısının sesi açılacak.`, okLabel: 'Unmute', okClass: 'btn-primary' });
+  if (!r.confirmed) return;
+  try { await adminPost('/api/admin/unmute', { targetId: m.id, reason: r.reason }); toast('success', 'Unmute Uygulandı', m.displayName); } catch(e) { toast('error', 'Hata', e.message); }
+}
+
+async function memberNick(mId) {
+  const m = getData(mId);
   const r = await showConfirm({ title: 'Nickname Değiştir', body: `<b>${escHtml(m.displayName)}</b> kullanıcısının nicknami değiştirilecek.`, needInput: true, inputLabel: 'YENİ NICKNAME (boş=sıfırla)', inputPlaceholder: 'Yeni nickname...', okLabel: 'Değiştir', okClass: 'btn-primary' });
   if (!r.confirmed) return;
   try { await adminPost('/api/admin/nick', { targetId: m.id, nick: r.inputVal || null }); toast('success', 'Nickname Değiştirildi', m.displayName); loadMembers(); } catch(e) { toast('error', 'Hata', e.message); }
 }
 
-async function memberAddRole(mStr) {
-  const m = JSON.parse(mStr);
+async function memberAddRole(mId) {
+  const m = getData(mId);
   let roles = [];
   try { const d = await apiFetch('/api/roles'); roles = d.roles || []; } catch {}
   const selectHtml = `<select id="add-role-sel" style="margin-top:6px;display:block"><option value="">-- Rol seç --</option>${roles.map(r => `<option value="${r.id}">${escHtml(r.name)}</option>`).join('')}</select>`;
@@ -1437,14 +1466,19 @@ async function memberAddRole(mStr) {
   try { await adminPost('/api/admin/role/add', { targetId: m.id, roleId }); toast('success', 'Rol Eklendi', ''); loadMembers(); } catch(e) { toast('error', 'Hata', e.message); }
 }
 
-async function memberRemoveRole(mStr) {
-  const m = JSON.parse(mStr);
+async function memberRemoveRole(mId) {
+  const m = getData(mId);
   const selectHtml = `<select id="rem-role-sel" style="margin-top:6px;display:block"><option value="">-- Rol seç --</option>${m.roles.map(r => `<option value="${r.id}">${escHtml(r.name)}</option>`).join('')}</select>`;
   const r = await showConfirm({ title: 'Rol Kaldır', body: `<b>${escHtml(m.displayName)}</b> kullanıcısından rol kaldır.<br>${selectHtml}`, warning: 'Rol kaldırılacak!', okLabel: 'Kaldır', okClass: 'btn-warn' });
   if (!r.confirmed) return;
   const roleId = document.getElementById('rem-role-sel')?.value;
   if (!roleId) { toast('warning', 'Rol Seçilmedi', ''); return; }
   try { await adminPost('/api/admin/role/remove', { targetId: m.id, roleId }); toast('success', 'Rol Kaldırıldı', ''); loadMembers(); } catch(e) { toast('error', 'Hata', e.message); }
+}
+
+async function memberWhitelistAdd(mId) {
+  const m = getData(mId);
+  try { await adminPost('/api/admin/whitelist/add', { userId: m.id }); toast('success', 'Whitelist', m.displayName + ' eklendi.'); } catch(e) { toast('error', 'Hata', e.message); }
 }
 
 // ══════════════════════════════════════════
@@ -1981,7 +2015,11 @@ async function sendRoleDm() {
   if (!roleId || !message) return toast('warning', 'Eksik Alan', 'Rol ve mesaj metnini doldurun.');
   const res = await showConfirm({ title: 'Role DM Gönder', body: `Bu mesaj seçilen roldeki tüm üyelere gönderilecektir.`, okLabel: 'Gönder', okClass: 'btn-primary' });
   if (!res.confirmed) return;
-  try { const r = await adminPost('/api/admin/dm/send', { roleId, message }); toast('success', 'DM Gönderimi Tamamlandı', `Başarılı: ${r.sent}, Başarısız: ${r.fail}`); }
+  try {
+    const r = await adminPost('/api/admin/dm/send', { roleId, message });
+    if (r.background) toast('info', 'DM Gönderimi Başladı', r.message || `${r.targetCount} kişiye gönderim arka planda sürüyor, Loglar sayfasından takip edin.`);
+    else toast('success', 'DM Gönderimi Tamamlandı', `Başarılı: ${r.sent}, Başarısız: ${r.fail}`);
+  }
   catch(e) { toast('error', 'Hata', e.message); }
 }
 
