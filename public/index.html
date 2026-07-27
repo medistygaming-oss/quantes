@@ -665,16 +665,26 @@ textarea{resize:vertical;min-height:80px;}
 
       <!-- ══ TEAM ══ -->
       <div class="page" id="page-team">
-        <div class="page-header"><h1>Ekip / Staff</h1><p>Yetkili yönetimi</p></div>
+        <div class="page-header"><h1>Ekip / Staff Yönetimi</h1><p>Yetkili ekleme, çıkarma ve yetkili listesi</p></div>
         <div class="toolbar">
           <div class="input-wrap" style="flex:1;max-width:340px">
             <span class="input-icon">➕</span>
             <input type="text" id="new-staff-id" placeholder="Discord ID girerek yetkili ekle..." style="padding-left:38px">
           </div>
-          <button class="btn btn-success btn-sm" onclick="addStaff()">Yetkili Ekle</button>
+          <button class="btn btn-success btn-sm" onclick="addStaff()">➕ Yetkili Ekle</button>
           <button class="btn btn-secondary btn-sm" onclick="loadTeam()">🔄 Yenile</button>
         </div>
-        <div id="team-grid" class="grid grid-3"><div class="loader" style="grid-column:1/-1"><div class="loader-ring"></div></div></div>
+        <div id="team-grid" class="grid grid-3" style="margin-bottom:20px"><div class="loader" style="grid-column:1/-1"><div class="loader-ring"></div></div></div>
+        
+        <div class="card">
+          <div class="section-title">📋 Yetkili Listesi</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>KULLANICI ID</th><th>UNVAN</th><th>OT PUANI</th><th>SON MESAJ</th><th>SON SES</th><th>İŞLEM</th></tr></thead>
+              <tbody id="team-tbody"><tr><td colspan="6"><div class="loader"><div class="loader-ring"></div></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- ══ OT ══ -->
@@ -731,20 +741,24 @@ textarea{resize:vertical;min-height:80px;}
 
       <!-- ══ WHITELIST ══ -->
       <div class="page" id="page-whitelist">
-        <div class="page-header"><h1>Guard Whitelist</h1><p>Guard sisteminden muaf kullanıcılar</p></div>
+        <div class="page-header"><h1>Guard Whitelist Yönetimi</h1><p>Guard sisteminden muaf kullanıcıları ekleyin, çıkarın ve listeleyin</p></div>
         <div class="toolbar">
           <div class="input-wrap" style="flex:1;max-width:340px">
             <span class="input-icon">➕</span>
-            <input type="text" id="new-wl-id" placeholder="Discord ID gir..." style="padding-left:38px">
+            <input type="text" id="new-wl-id" placeholder="Discord ID girerek whitelist'e ekle..." style="padding-left:38px">
           </div>
-          <button class="btn btn-success btn-sm" onclick="addToWhitelist()">Whitelist'e Ekle</button>
+          <button class="btn btn-success btn-sm" onclick="addToWhitelist()">➕ Whitelist'e Ekle</button>
           <button class="btn btn-secondary btn-sm" onclick="loadWhitelist()">🔄 Yenile</button>
         </div>
         <div class="card">
+          <div class="toolbar">
+            <div class="input-wrap flex1"><span class="input-icon">🔍</span><input type="text" id="wl-search" placeholder="ID ara..." oninput="filterWhitelist()"></div>
+            <span id="wl-count" style="font-size:12px;color:var(--text3)"></span>
+          </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>KULLANICI ID</th><th>İŞLEM</th></tr></thead>
-              <tbody id="whitelist-tbody"><tr><td colspan="2"><div class="loader"><div class="loader-ring"></div></div></td></tr></tbody>
+              <thead><tr><th>#</th><th>DİSCORD ID</th><th>DURUM</th><th>İŞLEM</th></tr></thead>
+              <tbody id="whitelist-tbody"><tr><td colspan="4"><div class="loader"><div class="loader-ring"></div></div></td></tr></tbody>
             </table>
           </div>
         </div>
@@ -1568,7 +1582,13 @@ async function loadTeam() {
   try {
     const d = await apiFetch('/api/team');
     const members = d.staff || [];
-    if (!members.length) { document.getElementById('team-grid').innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">👥</div><h4>Yetkili Yok</h4></div>'; return; }
+    if (!members.length) {
+      document.getElementById('team-grid').innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">👥</div><h4>Yetkili Yok</h4></div>';
+      document.getElementById('team-tbody').innerHTML = '<tr><td colspan="6"><div class="empty-state"><h4>Yetkili Yok</h4></div></td></tr>';
+      return;
+    }
+
+    // Grid View
     document.getElementById('team-grid').innerHTML = members.map(m => {
       const isOwner = d.owners?.includes(m.id);
       const act = m.activity || {};
@@ -1585,10 +1605,29 @@ async function loadTeam() {
         <div style="font-size:12px;color:var(--text2);margin-bottom:12px">🎮 İngame: ${act.ingameCount || 0} kez</div>
         <div style="font-size:12px;color:var(--text3)">OT</div>
         <div style="font-size:20px;font-weight:700;font-family:var(--mono);margin-bottom:14px">${fmt(m.ot)}</div>
-        ${hasRole('owner') && !isOwner ? `<button class="btn btn-danger btn-xs" style="width:100%" onclick="removeStaff('${m.id}')">Yetkiyi Kaldır</button>` : ''}
+        ${!isOwner && (hasRole('owner') || hasRole('admin')) ? `<button class="btn btn-danger btn-xs" style="width:100%" onclick="removeStaff('${m.id}')">🗑️ Yetkiyi Kaldır</button>` : ''}
       </div>`;
     }).join('');
-  } catch(e) { document.getElementById('team-grid').innerHTML = `<div class="error-state" style="grid-column:1/-1">⚠️ ${escHtml(e.message)}</div>`; }
+
+    // Table View
+    document.getElementById('team-tbody').innerHTML = members.map(m => {
+      const isOwner = d.owners?.includes(m.id);
+      const act = m.activity || {};
+      return `<tr>
+        <td><span class="mono">${m.id}</span></td>
+        <td>${isOwner ? '<span class="badge badge-yellow">👑 Owner</span>' : '<span class="badge badge-blue">🛡️ Yetkili</span>'}</td>
+        <td><span class="mono" style="font-weight:700">${fmt(m.ot)}</span></td>
+        <td style="font-size:12px">${timeAgo(act.lastMessageAt)}</td>
+        <td style="font-size:12px">${timeAgo(act.lastVoiceJoinAt)}</td>
+        <td>
+          ${!isOwner && (hasRole('owner') || hasRole('admin')) ? `<button class="btn btn-danger btn-xs" onclick="removeStaff('${m.id}')">🗑️ Yetkiyi Kaldır</button>` : '—'}
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('team-grid').innerHTML = `<div class="error-state" style="grid-column:1/-1">⚠️ ${escHtml(e.message)}</div>`;
+    showTbError('team-tbody', e.message, 6);
+  }
 }
 
 async function addStaff() {
@@ -1699,22 +1738,32 @@ async function loadLogs() {
 // ══════════════════════════════════════════
 // WHITELIST
 // ══════════════════════════════════════════
+let allWhitelist = [];
 async function loadWhitelist() {
-  document.getElementById('whitelist-tbody').innerHTML = '<tr><td colspan="2"><div class="loader"><div class="loader-ring"></div></div></td></tr>';
+  document.getElementById('whitelist-tbody').innerHTML = '<tr><td colspan="4"><div class="loader"><div class="loader-ring"></div></div></td></tr>';
   try {
     const d = await apiFetch('/api/guard');
-    const list = d.whitelist || [];
-    if (!list.length) { document.getElementById('whitelist-tbody').innerHTML = '<tr><td colspan="2"><div class="empty-state"><div class="empty-icon">✅</div><h4>Whitelist Boş</h4></div></td></tr>'; return; }
-    document.getElementById('whitelist-tbody').innerHTML = list.map(id => `<tr>
-      <td><span class="mono">${id}</span></td>
-      <td>${hasRole('admin') ? `<button class="btn btn-danger btn-xs" onclick="removeFromWhitelist('${id}')">Çıkar</button>` : '—'}</td>
-    </tr>`).join('');
-  } catch(e) { showTbError('whitelist-tbody', e.message, 2); }
+    allWhitelist = d.whitelist || [];
+    filterWhitelist();
+  } catch(e) { showTbError('whitelist-tbody', e.message, 4); }
+}
+
+function filterWhitelist() {
+  const q = (document.getElementById('wl-search')?.value || '').toLowerCase();
+  const list = allWhitelist.filter(id => !q || id.includes(q));
+  document.getElementById('wl-count').textContent = `${list.length} kullanıcı`;
+  if (!list.length) { document.getElementById('whitelist-tbody').innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">✅</div><h4>Whitelist Boş</h4></div></td></tr>'; return; }
+  document.getElementById('whitelist-tbody').innerHTML = list.map((id, index) => `<tr>
+    <td style="font-weight:700;color:var(--text3)">#${index + 1}</td>
+    <td><span class="mono" style="font-weight:600">${id}</span></td>
+    <td><span class="badge badge-green">🛡️ Muaf</span></td>
+    <td>${hasRole('admin') ? `<button class="btn btn-danger btn-xs" onclick="removeFromWhitelist('${id}')">🗑️ Whitelist'ten Çıkar</button>` : '—'}</td>
+  </tr>`).join('');
 }
 
 async function addToWhitelist() {
   const userId = document.getElementById('new-wl-id').value.trim();
-  if (!userId) { toast('warning', 'ID Boş', ''); return; }
+  if (!userId) { toast('warning', 'ID Boş', 'Lütfen bir Discord ID girin.'); return; }
   try { await adminPost('/api/admin/whitelist/add', { userId }); toast('success', 'Whitelist\'e Eklendi', userId); document.getElementById('new-wl-id').value = ''; loadWhitelist(); } catch(e) { toast('error', 'Hata', e.message); }
 }
 
