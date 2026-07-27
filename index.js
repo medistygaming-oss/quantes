@@ -1103,18 +1103,26 @@ app.post("/api/admin/dm/send", requireAuth("admin"), async (req, res) => {
     const { roleId, message } = req.body;
     if (!roleId || !message) return res.status(400).json({ error: "roleId ve message gerekli." });
     const guild = getMainGuild();
-    if (!guild) return res.status(500).json({ error: "Guild bulunamadı." });
-    await guild.members.fetch().catch(() => {});
+    if (!guild) return res.status(500).json({ error: "Bot Discord sunucusuna bağlı değil." });
+    
+    let members;
+    try { members = await guild.members.fetch(); } catch { members = guild.members.cache; }
     const role = guild.roles.cache.get(roleId);
     if (!role) return res.status(404).json({ error: "Rol bulunamadı." });
-    let sent = 0, fail = 0;
-    for (const member of role.members.values()) {
-      if (member.user.bot) continue;
-      await new Promise(r => setTimeout(r, 600));
-      try { await member.send(message); sent++; } catch { fail++; }
-    }
-    pushLog("mod", "[PANEL] Role DM", `Rol: ${role.name} | Başarılı: ${sent}, Başarısız: ${fail}`);
-    res.json({ success: true, sent, fail });
+    
+    const roleMembers = members.filter(m => !m.user.bot && m.roles.cache.has(roleId));
+    if (!roleMembers.size) return res.status(404).json({ error: "Bu role sahip kullanıcı bulunamadı." });
+
+    res.json({ success: true, targetCount: roleMembers.size, message: `${roleMembers.size} kişiye DM gönderimi başlatıldı.` });
+
+    (async () => {
+      let sent = 0, fail = 0;
+      for (const member of roleMembers.values()) {
+        await new Promise(r => setTimeout(r, 400));
+        try { await member.send(message); sent++; } catch { fail++; }
+      }
+      pushLog("mod", "[PANEL] Role DM Tamamlandı", `Rol: ${role.name} | Başarılı: ${sent}, Başarısız: ${fail}`);
+    })();
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
