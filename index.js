@@ -558,7 +558,7 @@ app.get("/api/bans", async (req, res) => {
   }
 });
 
-app.get("/api/roles", (req, res) => {
+app.get(["/api/roles", "/api/discord/roles"], (req, res) => {
   try {
     const guild = getMainGuild();
     if (!guild) return res.status(503).json({ error: "Bot Discord sunucusuna bağlı değil.", roles: [], total: 0 });
@@ -1065,6 +1065,11 @@ app.post("/api/admin/aktiflik/cancel", requireAuth("moderator"), async (req, res
     await closeAktiflik(guild, msgId, `Web Panel üzerinden iptal edildi (${req.executorId})`);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===================== API 404 CATCH =====================
+app.all("/api/*", (req, res) => {
+  res.status(404).json({ error: `API endpoint bulunamadı: ${req.method} ${req.path}` });
 });
 
 // ===================== STATIC + SPA FALLBACK =====================
