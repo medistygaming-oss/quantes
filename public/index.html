@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TeamCruz — Admin Panel</title>
-<meta name="description" content="TeamCruz FiveM Sunucu Yönetim Paneli — Tam Kontrol">
+<title>Knesta — Admin Panel</title>
+<meta name="description" content="Knesta Yönetim Paneli">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -345,9 +345,9 @@ textarea{resize:vertical;min-height:80px;}
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">
-      <div class="login-logo-icon">⚡</div>
-      <h1>TeamCruz Admin</h1>
-      <p>FiveM Sunucu Yönetim Paneli</p>
+      <div class="login-logo-icon">💎</div>
+      <h1>Knesta Admin</h1>
+      <p>Knesta Yönetim Paneli</p>
     </div>
     <div class="login-error" id="login-error"></div>
     <div class="login-field">
@@ -362,8 +362,8 @@ textarea{resize:vertical;min-height:80px;}
       Giriş Yap
     </button>
     <p class="login-note">
-      PANEL_SECRET env değişkeni ayarlanmamışsa boş bırakabilirsiniz.<br>
-      Yetkileri belirlemek için Discord ID'nizi girin.
+      <br>
+      Botta yetki almak için discord idnizi girin.
     </p>
   </div>
 </div>
@@ -429,9 +429,9 @@ textarea{resize:vertical;min-height:80px;}
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
-      <div class="logo-icon">⚡</div>
+      <div class="logo-icon">💎</div>
       <div class="logo-text">
-        <h2>TeamCruz</h2>
+        <h2>Knesta</h2>
         <p id="sidebar-role-chip">Admin Panel</p>
       </div>
     </div>
@@ -893,9 +893,9 @@ textarea{resize:vertical;min-height:80px;}
           </div>
           <div class="card">
             <div class="section-title">💥 Kanal Nuke (Yeniden Oluştur)</div>
-            <div class="modal-field"><label>NUKE EDİLECEK KANAL</label><select id="nuke-channel-select"><option value="">Kanal seçin...</option></select></div>
+            <div class="modal-field"><label>NUKE ATILACAK KANAL</label><select id="nuke-channel-select"><option value="">Kanal seçin...</option></select></div>
             <div class="modal-danger-warning" style="margin-top:10px"><span>⚠️</span><span>Kanal silinip aynı izinlerle yeniden kopyalanır.</span></div>
-            <button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="executeNukeChannel()">Kanalı Nuke Et</button>
+            <button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="executeNukeChannel()">Nukele</button>
           </div>
         </div>
       </div>
@@ -1588,7 +1588,7 @@ async function loadGuard() {
     const systems = [
       { key: 'global', label: 'Guard Genel', icon: '🛡️', desc: 'Tüm guard sistemi', val: d.enabled },
       { key: 'ban', label: 'Anti-Ban', icon: '🔨', desc: `Limit: ${d.limits?.ban ?? 2}`, val: d.systems?.ban },
-      { key: 'kick', label: 'Anti-Kick', icon: '👢', desc: `Limit: ${d.limits?.kick ?? 3}`, val: d.systems?.kick },
+      { key: 'kick', label: 'Anti-Kick', icon: '❌', desc: `Limit: ${d.limits?.kick ?? 3}`, val: d.systems?.kick },
       { key: 'channel', label: 'Anti-Kanal', icon: '📺', desc: `Limit: ${d.limits?.channel ?? 1}`, val: d.systems?.channel },
       { key: 'role', label: 'Anti-Rol', icon: '👑', desc: `Limit: ${d.limits?.role ?? 2}`, val: d.systems?.role },
       { key: 'window', label: 'Pencere Süresi', icon: '⏱️', desc: `${d.windowMinutes ?? 10} dakika`, val: null, isWindow: true, windowVal: d.windowMinutes ?? 10 },
