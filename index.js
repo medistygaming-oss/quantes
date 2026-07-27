@@ -501,7 +501,91 @@ async function getPlayer(id) {
 // ===================== OT =====================
 function ensureUser(id) { if (!envanter[id]) envanter[id] = { ot: 0 }; if (typeof envanter[id].ot !== "number") envanter[id].ot = 0; }
 
+// ===================== HELPER =====================
+function getMainGuild() {
+  const g = client.guilds.cache.first();
+  return g || null;
+}
+
 // ===================== API ROUTES (BEFORE STATIC) =====================
+app.get("/api/members", async (req, res) => {
+  try {
+    const guild = getMainGuild();
+    if (!guild) return res.status(503).json({ error: "Bot Discord sunucusuna bağlı değil.", members: [], total: 0 });
+    let members;
+    try {
+      members = await guild.members.fetch();
+    } catch {
+      members = guild.members.cache;
+    }
+    const list = members
+      .filter(m => !m.user.bot)
+      .map(m => ({
+        id: m.id,
+        username: m.user.username,
+        displayName: m.displayName,
+        tag: m.user.tag,
+        avatar: m.user.displayAvatarURL({ size: 64, extension: "webp" }),
+        roles: m.roles.cache.filter(r => r.id !== guild.id).map(r => ({ id: r.id, name: r.name, color: r.hexColor })),
+        joinedAt: m.joinedTimestamp,
+        bot: m.user.bot,
+        isOwner: isOwner(m.id),
+        isStaff: staffIds.has(m.id),
+        ot: envanter[m.id]?.ot || 0
+      }))
+      .sort((a, b) => a.username.localeCompare(b.username));
+    res.json({ members: list, total: list.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message, members: [], total: 0 });
+  }
+});
+
+app.get("/api/bans", async (req, res) => {
+  try {
+    const guild = getMainGuild();
+    if (!guild) return res.status(503).json({ error: "Bot Discord sunucusuna bağlı değil.", bans: [], total: 0 });
+    const bans = await guild.bans.fetch();
+    const list = bans.map(ban => ({
+      userId: ban.user.id,
+      username: ban.user.username,
+      tag: ban.user.tag,
+      avatar: ban.user.displayAvatarURL({ size: 64, extension: "webp" }),
+      reason: ban.reason || "Sebep belirtilmedi"
+    }));
+    res.json({ bans: list, total: list.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message, bans: [], total: 0 });
+  }
+});
+
+app.get("/api/roles", (req, res) => {
+  try {
+    const guild = getMainGuild();
+    if (!guild) return res.status(503).json({ error: "Bot Discord sunucusuna bağlı değil.", roles: [], total: 0 });
+    const roles = guild.roles.cache
+      .filter(r => r.id !== guild.id && !r.managed)
+      .map(r => ({ id: r.id, name: r.name, color: r.hexColor, position: r.position, memberCount: r.members.size }))
+      .sort((a, b) => b.position - a.position);
+    res.json({ roles, total: roles.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message, roles: [], total: 0 });
+  }
+});
+
+app.get("/api/discord/channels", (req, res) => {
+  try {
+    const guild = getMainGuild();
+    if (!guild) return res.status(503).json({ error: "Bot Discord sunucusuna bağlı değil.", channels: [], total: 0 });
+    const textChannels = guild.channels.cache
+      .filter(c => c.type === ChannelType.GuildText)
+      .map(c => ({ id: c.id, name: c.name, parentId: c.parentId }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    res.json({ channels: textChannels, total: textChannels.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message, channels: [], total: 0 });
+  }
+});
+
 app.get("/api/dashboard", async (req, res) => {
   try {
     let fivemData = { playerCount: 0, maxPlayers: 0, avgPing: 0, online: false };
