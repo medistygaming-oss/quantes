@@ -724,11 +724,11 @@ app.get("/api/config", (req, res) => {
 // ===================== ADMIN AUTH & ROLE SYSTEM =====================
 const PANEL_SECRET = (process.env.PANEL_SECRET || "").trim();
 
-function getPanelRole(discordId) {
-  if (!discordId) return "viewer";
-  if (isOwner(discordId)) return "owner";
-  if (staffIds.has(discordId)) return "admin";
-  if (otYetkililer.includes(discordId)) return "moderator";
+function getPanelRole(discordId, secret) {
+  if (discordId && isOwner(discordId)) return "owner";
+  if (discordId && staffIds.has(discordId)) return "admin";
+  if (discordId && otYetkililer.includes(discordId)) return "moderator";
+  if (!PANEL_SECRET || (secret && secret === PANEL_SECRET)) return "owner";
   return "viewer";
 }
 
@@ -736,12 +736,12 @@ const ROLE_LEVELS = { owner: 4, admin: 3, moderator: 2, staff: 1, viewer: 0 };
 
 function requireAuth(minRole = "viewer") {
   return (req, res, next) => {
-    if (PANEL_SECRET) {
-      const secret = req.headers["x-panel-secret"] || req.body?.secret;
-      if (secret !== PANEL_SECRET) return res.status(401).json({ error: "Yetkisiz erişim. Panel şifresi hatalı." });
+    const secret = req.headers["x-panel-secret"] || req.body?.secret || "";
+    if (PANEL_SECRET && secret !== PANEL_SECRET) {
+      return res.status(401).json({ error: "Yetkisiz erişim. Panel şifresi hatalı." });
     }
     const execId = req.body?.executorId || req.headers["x-executor-id"] || "";
-    const role = getPanelRole(execId);
+    const role = getPanelRole(execId, secret);
     if (minRole !== "viewer" && ROLE_LEVELS[role] < ROLE_LEVELS[minRole]) {
       return res.status(403).json({ error: `Bu işlem için ${minRole} yetkisi gerekli. Senin seviyen: ${role}` });
     }
@@ -754,7 +754,7 @@ function requireAuth(minRole = "viewer") {
 app.post("/api/auth/login", (req, res) => {
   const { secret, discordId } = req.body || {};
   if (PANEL_SECRET && secret !== PANEL_SECRET) return res.status(401).json({ error: "Şifre hatalı." });
-  const role = getPanelRole(discordId || "");
+  const role = getPanelRole(discordId || "", secret);
   pushLog("panel", "Panel Girişi", `Discord: ${discordId || "bilinmiyor"} → Rol: ${role}`);
   res.json({ ok: true, role, discordId: discordId || "", staffList: Array.from(staffIds), owners: OWNER_IDS });
 });
@@ -843,6 +843,126 @@ app.post("/api/admin/ot-yetki/remove", requireAuth("admin"), (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ===================== MEMBER MODERATION ENDPOINTS =====================
+app.post("/api/admin/kick", requireAuth("moderator"), async (req, res) => {
+  try {
+    const targetId = req.body.targetId || req.body.userId;
+    const reason = req.body.reason || "Panel kick";
+    if (!targetId) return res.status(400).json({ error: "targetId gerekli." });
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı." });
+    const member = await guild.members.fetch(targetId).catch(() => null);
+    if (!member) return res.status(404).json({ error: "Üye sunucuda bulunamadı." });
+    if (!member.kickable) return res.status(403).json({ error: "Kullanıcı atılamaz (rol hiyerarşisi)." });
+    await member.kick(`[Panel] ${reason} | Yetkili: ${req.executorId}`);
+    pushLog("kick", "[PANEL] Kick", `Hedef: ${targetId} | Sebep: ${reason} | Yapan: ${req.executorId}`);
+    res.json({ success: true, message: "Kullanıcı atıldı." });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/ban", requireAuth("admin"), async (req, res) => {
+  try {
+    const targetId = req.body.targetId || req.body.userId;
+    const reason = req.body.reason || "Panel ban";
+    if (!targetId) return res.status(400).json({ error: "targetId gerekli." });
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı." });
+    await guild.members.ban(targetId, { reason: `[Panel] ${reason} | Yetkili: ${req.executorId}` });
+    pushLog("ban", "[PANEL] Ban", `Hedef: ${targetId} | Sebep: ${reason} | Yapan: ${req.executorId}`);
+    res.json({ success: true, message: "Kullanıcı banlandı." });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/unban", requireAuth("admin"), async (req, res) => {
+  try {
+    const targetId = req.body.targetId || req.body.userId;
+    const reason = req.body.reason || "Panel unban";
+    if (!targetId) return res.status(400).json({ error: "targetId gerekli." });
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı." });
+    await guild.members.unban(targetId, `[Panel] ${reason} | Yetkili: ${req.executorId}`);
+    pushLog("ban", "[PANEL] Unban", `Hedef: ${targetId} | Yapan: ${req.executorId}`);
+    res.json({ success: true, message: "Ban kaldırıldı." });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/timeout", requireAuth("moderator"), async (req, res) => {
+  try {
+    const targetId = req.body.targetId || req.body.userId;
+    const durationMs = parseInt(req.body.durationMs) || 600000;
+    const reason = req.body.reason || "Panel timeout";
+    if (!targetId) return res.status(400).json({ error: "targetId gerekli." });
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı." });
+    const member = await guild.members.fetch(targetId).catch(() => null);
+    if (!member) return res.status(404).json({ error: "Üye bulunamadı." });
+    await member.timeout(durationMs, `[Panel] ${reason} | Yetkili: ${req.executorId}`);
+    pushLog("mod", "[PANEL] Timeout", `Hedef: ${targetId} | Süre: ${durationMs}ms | Yapan: ${req.executorId}`);
+    res.json({ success: true, message: "Timeout uygulandı." });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/role/add", requireAuth("admin"), async (req, res) => {
+  try {
+    const targetId = req.body.targetId || req.body.userId;
+    const { roleId } = req.body;
+    if (!targetId || !roleId) return res.status(400).json({ error: "targetId ve roleId gerekli." });
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı." });
+    const member = await guild.members.fetch(targetId).catch(() => null);
+    if (!member) return res.status(404).json({ error: "Üye bulunamadı." });
+    await member.roles.add(roleId);
+    pushLog("role", "[PANEL] Rol Eklendi", `Hedef: ${targetId} | Rol: ${roleId} | Yapan: ${req.executorId}`);
+    res.json({ success: true, message: "Rol eklendi." });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/role/remove", requireAuth("admin"), async (req, res) => {
+  try {
+    const targetId = req.body.targetId || req.body.userId;
+    const { roleId } = req.body;
+    if (!targetId || !roleId) return res.status(400).json({ error: "targetId ve roleId gerekli." });
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı." });
+    const member = await guild.members.fetch(targetId).catch(() => null);
+    if (!member) return res.status(404).json({ error: "Üye bulunamadı." });
+    await member.roles.remove(roleId);
+    pushLog("role", "[PANEL] Rol Kaldırıldı", `Hedef: ${targetId} | Rol: ${roleId} | Yapan: ${req.executorId}`);
+    res.json({ success: true, message: "Rol kaldırıldı." });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/whitelist/add", requireAuth("admin"), (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli." });
+    whitelist.add(userId);
+    saveWhitelist();
+    pushLog("guard", "[PANEL] Whitelist Eklendi", `${userId} | Yapan: ${req.executorId}`);
+    res.json({ success: true, whitelist: Array.from(whitelist) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/whitelist/remove", requireAuth("admin"), (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli." });
+    whitelist.delete(userId);
+    saveWhitelist();
+    pushLog("guard", "[PANEL] Whitelist Kaldırıldı", `${userId} | Yapan: ${req.executorId}`);
+    res.json({ success: true, whitelist: Array.from(whitelist) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/whitelist/clear", requireAuth("admin"), (req, res) => {
+  try {
+    whitelist.clear();
+    saveWhitelist();
+    pushLog("guard", "[PANEL] Whitelist Temizlendi", `Yapan: ${req.executorId}`);
+    res.json({ success: true, whitelist: [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post("/api/admin/nick", requireAuth("moderator"), async (req, res) => {
   try {
     const { userId, nick } = req.body;
@@ -888,16 +1008,109 @@ app.post("/api/admin/channel/nuke", requireAuth("admin"), async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.post("/api/admin/send-panel", requireAuth("admin"), async (req, res) => {
+  try {
+    const { panelType, channelId, title, limit, duration, roleId } = req.body;
+    if (!channelId) return res.status(400).json({ error: "Kanal ID gerekli." });
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı." });
+    const ch = guild.channels.cache.get(channelId);
+    if (!ch) return res.status(404).json({ error: "Kanal bulunamadı." });
+
+    if (panelType === "ticket") {
+      const btnTitle = title || "Başvuru Yap";
+      const embed = createEmbed(guild, {
+        title: line(EMOJI.star, "TeamCruz • Başvuru Sistemi"),
+        description: `${EMOJI.right} ・ Ekibimize başvuru yapmak için aşağıdaki **${btnTitle}** butonuna tıklayın.\n\n${EMOJI.info} ・ Başvurunuz yetkililerimiz tarafından incelenip en kısa sürede sonuçlandırılacaktır.`
+      });
+      if (TICKET_BANNER_URL) embed.setImage(TICKET_BANNER_URL);
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId("ticket_open").setLabel(btnTitle).setEmoji("📝").setStyle(ButtonStyle.Primary)
+      );
+      await ch.send({ embeds: [embed], components: [row] });
+      pushLog("panel", "[PANEL] Ticket Paneli Gönderildi", `#${ch.name}`);
+    } else if (panelType === "banaff") {
+      const embed = createEmbed(guild, {
+        title: line(EMOJI.ban, "TeamCruz • Ban Affı Paneli"),
+        description: `${EMOJI.right} ・ Sunucudan veya oyundan banlandıysanız af talebinde bulunmak için aşağıdaki **Banlıyım!** butonuna tıklayın.`
+      });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId("banaff_open").setLabel(title || "Banlıyım!").setEmoji("🚫").setStyle(ButtonStyle.Danger)
+      );
+      await ch.send({ embeds: [embed], components: [row] });
+      pushLog("banaff", "[PANEL] Ban Affı Paneli Gönderildi", `#${ch.name}`);
+    } else if (panelType === "ingame") {
+      const lim = parseInt(limit) || 10;
+      const t = title || "Aktif Kadro";
+      const durMs = parseDurationToMs(duration || "30dk") || 1800000;
+      const endsAt = Date.now() + durMs;
+      const embed = createEmbed(guild, {
+        title: line(EMOJI.fivem, `İNGAME ・ ${t}`),
+        description: `${EMOJI.info} ・ Kontenjan: **0/${lim}**\n${EMOJI.right} ・ Bitiş: <t:${Math.floor(endsAt/1000)}:R>\n\n**Katılanlar:**\n*(Henüz kimse katılmadı)*`
+      });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId("ingame_join").setLabel("Katıl").setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId("ingame_leave").setLabel("Ayrıl").setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId("ingame_info").setLabel("Kadro").setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId("ingame_cancel").setLabel("İptal").setStyle(ButtonStyle.Danger)
+      );
+      const msg = await ch.send({ embeds: [embed], components: [row] });
+      const timer = setTimeout(() => closeIngame(guild, msg.id, "Süre doldu"), durMs);
+      ingameList.set(msg.id, { title: t, limit: lim, users: [], endsAt, closed: false, timer, channelId: ch.id, ownerId: req.executorId });
+      pushLog("panel", "[PANEL] Ingame Paneli Gönderildi", `${t} | #${ch.name}`);
+    } else if (panelType === "etkinlik") {
+      const lim = parseInt(limit) || 10;
+      const t = title || "Etkinlik";
+      const embed = createEmbed(guild, {
+        title: line(EMOJI.star, `ETKİNLİK ・ ${t}`),
+        description: `${EMOJI.info} ・ Kontenjan: **0/${lim}**\n\n**Katılanlar:**\n*(Henüz kimse katılmadı)*`
+      });
+      const msg = await ch.send({ embeds: [embed] });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`etkinlik_join_${msg.id}`).setLabel("Katıl").setStyle(ButtonStyle.Success)
+      );
+      await msg.edit({ components: [row] });
+      etkinlikList.set(msg.id, { users: [], limit: lim, title: t, closed: false });
+      pushLog("panel", "[PANEL] Etkinlik Paneli Gönderildi", `${t} | #${ch.name}`);
+    } else if (panelType === "aktiflik") {
+      const durMs = parseDurationToMs(duration || "30dk") || 1800000;
+      const endsAt = Date.now() + durMs;
+      const content = roleId ? `<@&${roleId}>` : null;
+      const embed = createEmbed(guild, {
+        title: line(EMOJI.shield, "⚡ AKTİFLİK TESTİ ⚡"),
+        description: `${EMOJI.info} ・ Lütfen aşağıdaki **Aktifliğe Katıl** butonuna tıklayın.\n${EMOJI.right} ・ Bitiş Süresi: <t:${Math.floor(endsAt/1000)}:R>`
+      });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId("aktiflik_join").setLabel("Aktifliğe Katıl").setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId("aktiflik_cancel").setLabel("İptal Et").setStyle(ButtonStyle.Danger)
+      );
+      const msg = await ch.send({ content: content || undefined, embeds: [embed], components: [row] });
+      const timer = setTimeout(() => closeAktiflik(guild, msg.id), durMs);
+      aktiflikList.set(msg.id, { roleId, durationMs: durMs, endsAt, joined: new Set(), closed: false, timer, channelId: ch.id });
+      pushLog("panel", "[PANEL] Aktiflik Paneli Gönderildi", `#${ch.name}`);
+    } else {
+      return res.status(400).json({ error: "Geçersiz panel tipi." });
+    }
+
+    res.json({ success: true, message: "Panel başarıyla gönderildi." });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post("/api/admin/dm/send", requireAuth("admin"), async (req, res) => {
   try {
     const { roleId, message } = req.body;
     if (!roleId || !message) return res.status(400).json({ error: "roleId ve message gerekli." });
     const guild = getMainGuild();
-    const role = guild?.roles.cache.get(roleId);
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı." });
+    await guild.members.fetch().catch(() => {});
+    const role = guild.roles.cache.get(roleId);
     if (!role) return res.status(404).json({ error: "Rol bulunamadı." });
     let sent = 0, fail = 0;
     for (const member of role.members.values()) {
-      await new Promise(r => setTimeout(r, 1000));
+      if (member.user.bot) continue;
+      await new Promise(r => setTimeout(r, 600));
       try { await member.send(message); sent++; } catch { fail++; }
     }
     pushLog("mod", "[PANEL] Role DM", `Rol: ${role.name} | Başarılı: ${sent}, Başarısız: ${fail}`);
