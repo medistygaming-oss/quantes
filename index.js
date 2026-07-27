@@ -843,8 +843,22 @@ app.post("/api/admin/ot-yetki/remove", requireAuth("admin"), (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ===================== OT ENDPOINTS =====================
+app.post(["/api/admin/ot/update", "/api/ot/update", "/api/admin/ot"], requireAuth("moderator"), (req, res) => {
+  try {
+    const { userId, amount } = req.body;
+    if (!userId || amount === undefined) return res.status(400).json({ error: "userId ve amount gerekli." });
+    ensureUser(userId);
+    const prev = envanter[userId].ot;
+    envanter[userId].ot = Math.max(0, prev + Number(amount));
+    saveEnvanter();
+    pushLog("mod", "[PANEL] OT Güncelle", `${userId} | ${prev} → ${envanter[userId].ot} | Yapan: ${req.executorId}`);
+    res.json({ success: true, ok: true, newTotal: envanter[userId].ot });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ===================== MEMBER MODERATION ENDPOINTS =====================
-app.post("/api/admin/kick", requireAuth("moderator"), async (req, res) => {
+app.post(["/api/admin/kick", "/api/kick"], requireAuth("moderator"), async (req, res) => {
   try {
     const targetId = req.body.targetId || req.body.userId;
     const reason = req.body.reason || "Panel kick";
@@ -860,7 +874,7 @@ app.post("/api/admin/kick", requireAuth("moderator"), async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/ban", requireAuth("admin"), async (req, res) => {
+app.post(["/api/admin/ban", "/api/ban"], requireAuth("admin"), async (req, res) => {
   try {
     const targetId = req.body.targetId || req.body.userId;
     const reason = req.body.reason || "Panel ban";
@@ -873,7 +887,7 @@ app.post("/api/admin/ban", requireAuth("admin"), async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/unban", requireAuth("admin"), async (req, res) => {
+app.post(["/api/admin/unban", "/api/unban"], requireAuth("admin"), async (req, res) => {
   try {
     const targetId = req.body.targetId || req.body.userId;
     const reason = req.body.reason || "Panel unban";
@@ -886,7 +900,7 @@ app.post("/api/admin/unban", requireAuth("admin"), async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/timeout", requireAuth("moderator"), async (req, res) => {
+app.post(["/api/admin/timeout", "/api/timeout"], requireAuth("moderator"), async (req, res) => {
   try {
     const targetId = req.body.targetId || req.body.userId;
     const durationMs = parseInt(req.body.durationMs) || 600000;
@@ -902,7 +916,7 @@ app.post("/api/admin/timeout", requireAuth("moderator"), async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/role/add", requireAuth("admin"), async (req, res) => {
+app.post(["/api/admin/role/add", "/api/role/add"], requireAuth("admin"), async (req, res) => {
   try {
     const targetId = req.body.targetId || req.body.userId;
     const { roleId } = req.body;
@@ -917,7 +931,7 @@ app.post("/api/admin/role/add", requireAuth("admin"), async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/role/remove", requireAuth("admin"), async (req, res) => {
+app.post(["/api/admin/role/remove", "/api/role/remove"], requireAuth("admin"), async (req, res) => {
   try {
     const targetId = req.body.targetId || req.body.userId;
     const { roleId } = req.body;
@@ -932,7 +946,7 @@ app.post("/api/admin/role/remove", requireAuth("admin"), async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/whitelist/add", requireAuth("admin"), (req, res) => {
+app.post(["/api/admin/whitelist/add", "/api/whitelist/add"], requireAuth("admin"), (req, res) => {
   try {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: "userId gerekli." });
@@ -943,7 +957,7 @@ app.post("/api/admin/whitelist/add", requireAuth("admin"), (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/whitelist/remove", requireAuth("admin"), (req, res) => {
+app.post(["/api/admin/whitelist/remove", "/api/whitelist/remove"], requireAuth("admin"), (req, res) => {
   try {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: "userId gerekli." });
@@ -954,7 +968,7 @@ app.post("/api/admin/whitelist/remove", requireAuth("admin"), (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/whitelist/clear", requireAuth("admin"), (req, res) => {
+app.post(["/api/admin/whitelist/clear", "/api/whitelist/clear"], requireAuth("admin"), (req, res) => {
   try {
     whitelist.clear();
     saveWhitelist();
@@ -963,7 +977,7 @@ app.post("/api/admin/whitelist/clear", requireAuth("admin"), (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/nick", requireAuth("moderator"), async (req, res) => {
+app.post(["/api/admin/nick", "/api/nick"], requireAuth("moderator"), async (req, res) => {
   try {
     const { userId, nick } = req.body;
     if (!userId) return res.status(400).json({ error: "userId gerekli." });
