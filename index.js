@@ -916,6 +916,42 @@ app.post(["/api/admin/timeout", "/api/timeout"], requireAuth("moderator"), async
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.post(["/api/admin/mute", "/api/mute"], requireAuth("moderator"), async (req, res) => {
+  try {
+    const targetId = req.body.targetId || req.body.userId;
+    const reason = req.body.reason || "Panel mute";
+    if (!targetId) return res.status(400).json({ error: "targetId gerekli." });
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı." });
+    const member = await guild.members.fetch(targetId).catch(() => null);
+    if (!member) return res.status(404).json({ error: "Üye bulunamadı." });
+    await member.voice.setMute(true, `[Panel] ${reason} | Yetkili: ${req.executorId}`);
+    pushLog("mod", "[PANEL] Mute", `Hedef: ${targetId} | Yapan: ${req.executorId}`);
+    res.json({ success: true, message: "Kullanıcı sesten susturuldu." });
+  } catch (e) {
+    const msg = /voice/i.test(e.message || "") || (e.code === 40032) ? "Kullanıcı bir ses kanalında değil, mute uygulanamadı." : e.message;
+    res.status(500).json({ error: msg });
+  }
+});
+
+app.post(["/api/admin/unmute", "/api/unmute"], requireAuth("moderator"), async (req, res) => {
+  try {
+    const targetId = req.body.targetId || req.body.userId;
+    const reason = req.body.reason || "Panel unmute";
+    if (!targetId) return res.status(400).json({ error: "targetId gerekli." });
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı." });
+    const member = await guild.members.fetch(targetId).catch(() => null);
+    if (!member) return res.status(404).json({ error: "Üye bulunamadı." });
+    await member.voice.setMute(false, `[Panel] ${reason} | Yetkili: ${req.executorId}`);
+    pushLog("mod", "[PANEL] Unmute", `Hedef: ${targetId} | Yapan: ${req.executorId}`);
+    res.json({ success: true, message: "Kullanıcının sesi açıldı." });
+  } catch (e) {
+    const msg = /voice/i.test(e.message || "") || (e.code === 40032) ? "Kullanıcı bir ses kanalında değil, unmute uygulanamadı." : e.message;
+    res.status(500).json({ error: msg });
+  }
+});
+
 app.post(["/api/admin/role/add", "/api/role/add"], requireAuth("admin"), async (req, res) => {
   try {
     const targetId = req.body.targetId || req.body.userId;
@@ -996,10 +1032,20 @@ app.post("/api/admin/messages/bulk-delete", requireAuth("moderator"), async (req
     const { channelId, count } = req.body;
     if (!channelId || !count) return res.status(400).json({ error: "channelId ve count gerekli." });
     const guild = getMainGuild();
-    const ch = guild?.channels.cache.get(channelId);
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı." });
+    const ch = guild.channels.cache.get(channelId);
     if (!ch) return res.status(404).json({ error: "Kanal bulunamadı." });
-    const msgs = await ch.bulkDelete(Math.min(100, Math.max(1, parseInt(count))), true).catch(() => null);
-    if (!msgs) return res.status(400).json({ error: "Mesajlar silinemedi (14 günden eski mesajlar silinemez)." });
+    if (!ch.isTextBased || !ch.isTextBased()) return res.status(400).json({ error: "Seçilen kanal metin kanalı değil." });
+    const me = guild.members.me;
+    if (me && !ch.permissionsFor(me)?.has(PermissionsBitField.Flags.ManageMessages)) {
+      return res.status(403).json({ error: "Botun bu kanalda 'Mesajları Yönet' izni yok." });
+    }
+    let msgs;
+    try {
+      msgs = await ch.bulkDelete(Math.min(100, Math.max(1, parseInt(count) || 10)), true);
+    } catch (delErr) {
+      return res.status(400).json({ error: `Mesajlar silinemedi: ${delErr.message} (14 günden eski mesajlar toplu silinemez).` });
+    }
     pushLog("mod", "[PANEL] Toplu Silme", `${msgs.size} mesaj | #${ch.name}`);
     res.json({ success: true, deletedCount: msgs.size });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1127,16 +1173,31 @@ app.post("/api/admin/dm/send", requireAuth("admin"), async (req, res) => {
     const roleMembers = members.filter(m => !m.user.bot && m.roles.cache.has(roleId));
     if (!roleMembers.size) return res.status(404).json({ error: "Bu role sahip kullanıcı bulunamadı." });
 
-    res.json({ success: true, targetCount: roleMembers.size, message: `${roleMembers.size} kişiye DM gönderimi başlatıldı.` });
+    const targetList = Array.from(roleMembers.values());
+    const SYNC_LIMIT = 60; // ~ (60 * 400ms) ≈ 24sn altında kalır, HTTP timeout'a takılmaz
+    let sent = 0, fail = 0;
 
-    (async () => {
-      let sent = 0, fail = 0;
-      for (const member of roleMembers.values()) {
+    async function sendBatch(list) {
+      let s = 0, f = 0;
+      for (const member of list) {
+        try { await member.send(message); s++; } catch { f++; }
         await new Promise(r => setTimeout(r, 400));
-        try { await member.send(message); sent++; } catch { fail++; }
       }
-      pushLog("mod", "[PANEL] Role DM Tamamlandı", `Rol: ${role.name} | Başarılı: ${sent}, Başarısız: ${fail}`);
-    })();
+      return { s, f };
+    }
+
+    if (targetList.length <= SYNC_LIMIT) {
+      const r = await sendBatch(targetList);
+      sent = r.s; fail = r.f;
+      pushLog("mod", "[PANEL] Role DM Tamamlandı", `Rol: ${role.name} | Başarılı: ${sent}, Başarısız: ${fail} | Yapan: ${req.executorId}`);
+      return res.json({ success: true, targetCount: targetList.length, sent, fail, message: `${sent} kişiye gönderildi, ${fail} başarısız.` });
+    }
+
+    // Büyük roller: hemen yanıt dön, işlemi arka planda tamamla, sonucu loglardan takip ettir.
+    res.json({ success: true, targetCount: targetList.length, sent: 0, fail: 0, background: true, message: `${targetList.length} kişiye DM gönderimi arka planda başlatıldı, sonucu loglardan takip edebilirsiniz.` });
+    sendBatch(targetList).then(({ s, f }) => {
+      pushLog("mod", "[PANEL] Role DM Tamamlandı", `Rol: ${role.name} | Başarılı: ${s}, Başarısız: ${f} | Yapan: ${req.executorId}`);
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
