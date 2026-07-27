@@ -46,8 +46,8 @@ const BOT_START_TIME = Date.now();
 // In-memory log ring buffer (web panel için)
 const LOG_RING = [];
 const LOG_MAX = 300;
-function pushLog(category, action, detail, executor = "System") {
-  LOG_RING.unshift({ category, action, detail, executor, ts: Date.now() });
+function pushLog(category, action, detail) {
+  LOG_RING.unshift({ category, action, detail, ts: Date.now() });
   if (LOG_RING.length > LOG_MAX) LOG_RING.pop();
 }
 
@@ -177,60 +177,6 @@ const activityStats = new Map();
 let maintenanceMode = false;
 const urlProtection = { enabled: false };
 let lastPlayersFetchAt = 0, cachedPlayersJson = null;
-
-// ===================== ORTAK MANTIKSAL SERVİSLER =====================
-function getMainGuild() {
-  if (GUILD_ID) return client.guilds.cache.get(GUILD_ID);
-  return client.guilds.cache.first();
-}
-
-async function coreBanUser(targetId, reason = "Web Panel Ban", executor = "Web Panel") {
-  const guild = getMainGuild();
-  if (!guild) throw new Error("Sunucuya erişilemedi");
-  await guild.members.ban(targetId, { reason: `${reason} (İşlem: ${executor})` });
-  pushLog("ban", "Üye Banlandı", `Hedef: ${targetId} | Sebep: ${reason}`, executor);
-  return true;
-}
-
-async function coreKickUser(targetId, reason = "Web Panel Kick", executor = "Web Panel") {
-  const guild = getMainGuild();
-  if (!guild) throw new Error("Sunucuya erişilemedi");
-  const member = await guild.members.fetch(targetId);
-  if (!member) throw new Error("Kullanıcı sunucuda bulunamadı");
-  await member.kick(`${reason} (İşlem: ${executor})`);
-  pushLog("kick", "Üye Atıldı", `Hedef: ${targetId} | Sebep: ${reason}`, executor);
-  return true;
-}
-
-async function coreUnbanUser(targetId, reason = "Web Panel Unban", executor = "Web Panel") {
-  const guild = getMainGuild();
-  if (!guild) throw new Error("Sunucuya erişilemedi");
-  await guild.bans.remove(targetId, `${reason} (İşlem: ${executor})`);
-  pushLog("ban", "Ban Kaldırıldı", `Hedef: ${targetId}`, executor);
-  return true;
-}
-
-async function coreTimeoutUser(targetId, durationMinutes, reason = "Web Panel Timeout", executor = "Web Panel") {
-  const guild = getMainGuild();
-  if (!guild) throw new Error("Sunucuya erişilemedi");
-  const member = await guild.members.fetch(targetId);
-  if (!member) throw new Error("Kullanıcı bulunamadı");
-  const ms = durationMinutes > 0 ? durationMinutes * 60 * 1000 : null;
-  await member.timeout(ms, `${reason} (İşlem: ${executor})`);
-  pushLog("mod", durationMinutes > 0 ? "Timeout Uygulandı" : "Timeout Kaldırıldı", `Hedef: ${targetId} | Süre: ${durationMinutes}dk`, executor);
-  return true;
-}
-
-async function coreUpdateRoles(targetId, roleId, action = "add", executor = "Web Panel") {
-  const guild = getMainGuild();
-  if (!guild) throw new Error("Sunucuya erişilemedi");
-  const member = await guild.members.fetch(targetId);
-  if (!member) throw new Error("Kullanıcı bulunamadı");
-  if (action === "add") await member.roles.add(roleId);
-  else await member.roles.remove(roleId);
-  pushLog("role", "Rol Güncellendi", `Hedef: ${targetId} | Rol: ${roleId} | İşlem: ${action}`, executor);
-  return true;
-}
 
 // ===================== HELPERS =====================
 const formatNumber = (n) => Number(n || 0).toLocaleString("tr-TR");
@@ -631,45 +577,6 @@ app.get("/api/fivem/tag/:name", async (req, res) => {
   } catch (e) { res.status(503).json({ error: e.message, results: [], total: 0 }); }
 });
 
-app.get("/api/members", async (req, res) => {
-  try {
-    const guild = getMainGuild();
-    if (!guild) return res.status(500).json({ error: "Guild bulunamadı" });
-    const query = (req.query.q || "").toLowerCase();
-    const fetched = await guild.members.fetch({ limit: 100 }).catch(() => guild.members.cache);
-    const membersArr = [];
-    fetched.forEach(m => {
-      if (m.user.bot) return;
-      if (!query || m.user.tag.toLowerCase().includes(query) || m.id.includes(query) || (m.nickname && m.nickname.toLowerCase().includes(query))) {
-        membersArr.push({
-          id: m.id,
-          tag: m.user.tag,
-          displayName: m.displayName,
-          avatar: m.user.displayAvatarURL({ size: 64 }),
-          joinedAt: m.joinedTimestamp,
-          roles: m.roles.cache.map(r => ({ id: r.id, name: r.name })).filter(r => r.name !== "@everyone")
-        });
-      }
-    });
-    res.json({ members: membersArr.slice(0, 50), total: membersArr.length });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.get("/api/bans", async (req, res) => {
-  try {
-    const guild = getMainGuild();
-    if (!guild) return res.status(500).json({ error: "Guild bulunamadı" });
-    const bans = await guild.bans.fetch().catch(() => new Map());
-    const list = Array.from(bans.values()).map(b => ({
-      userId: b.user.id,
-      tag: b.user.tag,
-      reason: b.reason || "Sebep belirtilmedi",
-      avatar: b.user.displayAvatarURL({ size: 64 })
-    }));
-    res.json({ bans: list, total: list.length });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 app.get("/api/team", (req, res) => {
   const staff = Array.from(staffIds).map(id => ({
     id, isOwner: isOwner(id),
@@ -730,145 +637,349 @@ app.get("/api/config", (req, res) => {
   res.json({ cfxCode: CFX_CODE, panelAuthor: PANEL_AUTHOR, maintenance: maintenanceMode, logChannels: Object.keys(config.logs || {}) });
 });
 
-// ===================== POST / ACTION API ENDPOINTS =====================
-app.post("/api/admin/ban", async (req, res) => {
-  try {
-    const { userId, reason } = req.body;
-    if (!userId) return res.status(400).json({ error: "userId gerekli" });
-    await coreBanUser(userId, reason || "Panel Yönetim Banı", "Web Panel");
-    res.json({ success: true, message: "Kullanıcı başarıyla banlandı" });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+// ===================== ADMIN AUTH & ROLE SYSTEM =====================
+const PANEL_SECRET = (process.env.PANEL_SECRET || "").trim();
 
-app.post("/api/admin/kick", async (req, res) => {
-  try {
-    const { userId, reason } = req.body;
-    if (!userId) return res.status(400).json({ error: "userId gerekli" });
-    await coreKickUser(userId, reason || "Panel Yönetim Kick", "Web Panel");
-    res.json({ success: true, message: "Kullanıcı başarıyla atıldı" });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+function getPanelRole(discordId) {
+  if (!discordId) return "viewer";
+  if (isOwner(discordId)) return "owner";
+  if (staffIds.has(discordId)) return "admin";
+  if (otYetkililer.includes(discordId)) return "moderator";
+  return "viewer";
+}
 
-app.post("/api/admin/unban", async (req, res) => {
-  try {
-    const { userId, reason } = req.body;
-    if (!userId) return res.status(400).json({ error: "userId gerekli" });
-    await coreUnbanUser(userId, reason || "Panel Üzerinden Kaldırıldı", "Web Panel");
-    res.json({ success: true, message: "Ban başarıyla kaldırıldı" });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+const ROLE_LEVELS = { owner: 4, admin: 3, moderator: 2, staff: 1, viewer: 0 };
 
-app.post("/api/admin/timeout", async (req, res) => {
-  try {
-    const { userId, minutes, reason } = req.body;
-    if (!userId) return res.status(400).json({ error: "userId gerekli" });
-    await coreTimeoutUser(userId, parseInt(minutes) || 0, reason || "Panel Timeout", "Web Panel");
-    res.json({ success: true, message: "Timeout güncellendi" });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/admin/role/add", async (req, res) => {
-  try {
-    const { userId, roleId } = req.body;
-    if (!userId || !roleId) return res.status(400).json({ error: "Eksik parametre" });
-    await coreUpdateRoles(userId, roleId, "add", "Web Panel");
-    res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/admin/role/remove", async (req, res) => {
-  try {
-    const { userId, roleId } = req.body;
-    if (!userId || !roleId) return res.status(400).json({ error: "Eksik parametre" });
-    await coreUpdateRoles(userId, roleId, "remove", "Web Panel");
-    res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/admin/guard/toggle", (req, res) => {
-  try {
-    const { system, enabled } = req.body;
-    if (system === "general") {
-      guardConfig.enabled = !!enabled;
-    } else if (guardConfig.systems[system] !== undefined) {
-      guardConfig.systems[system] = !!enabled;
-    } else {
-      return res.status(400).json({ error: "Geçersiz sistem" });
+function requireAuth(minRole = "viewer") {
+  return (req, res, next) => {
+    if (PANEL_SECRET) {
+      const secret = req.headers["x-panel-secret"] || req.body?.secret;
+      if (secret !== PANEL_SECRET) return res.status(401).json({ error: "Yetkisiz erişim. Panel şifresi hatalı." });
     }
-    saveGuard();
-    pushLog("guard", "Guard Ayarı Değiştirildi", `${system} -> ${enabled ? "AÇIK" : "KAPALI"}`, "Web Panel");
-    res.json({ success: true, guard: guardConfig });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/admin/guard/limit", (req, res) => {
-  try {
-    const { system, limit } = req.body;
-    if (guardConfig.limits[system] !== undefined) {
-      guardConfig.limits[system] = Math.max(0, parseInt(limit) || 0);
-      saveGuard();
-      pushLog("guard", "Guard Limiti Değiştirildi", `${system} -> ${limit}`, "Web Panel");
-      return res.json({ success: true, limits: guardConfig.limits });
+    const execId = req.body?.executorId || req.headers["x-executor-id"] || "";
+    const role = getPanelRole(execId);
+    if (minRole !== "viewer" && ROLE_LEVELS[role] < ROLE_LEVELS[minRole]) {
+      return res.status(403).json({ error: `Bu işlem için ${minRole} yetkisi gerekli. Senin seviyen: ${role}` });
     }
-    res.status(400).json({ error: "Sistem bulunamadı" });
+    req.panelRole = role;
+    req.executorId = execId || "Web Panel";
+    next();
+  };
+}
+
+app.post("/api/auth/login", (req, res) => {
+  const { secret, discordId } = req.body || {};
+  if (PANEL_SECRET && secret !== PANEL_SECRET) return res.status(401).json({ error: "Şifre hatalı." });
+  const role = getPanelRole(discordId || "");
+  pushLog("panel", "Panel Girişi", `Discord: ${discordId || "bilinmiyor"} → Rol: ${role}`);
+  res.json({ ok: true, role, discordId: discordId || "", staffList: Array.from(staffIds), owners: OWNER_IDS });
+});
+
+// ===================== GET ENDPOINTS =====================
+app.get("/api/staff", (req, res) => {
+  const list = Array.from(staffIds).map(id => ({
+    id,
+    isOwner: isOwner(id),
+    ot: envanter[id]?.ot || 0,
+    activity: activityStats.get(id) || { lastMessageAt: null, lastVoiceJoinAt: null, ingameCount: 0 }
+  }));
+  res.json({ staff: list, total: list.length });
+});
+
+app.get("/api/ot-yetki", (req, res) => {
+  res.json({ otYetkililer, total: otYetkililer.length });
+});
+
+app.get("/api/discord/voice-channels", (req, res) => {
+  try {
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild yok" });
+    const voiceChannels = guild.channels.cache
+      .filter(c => c.type === ChannelType.GuildVoice)
+      .map(c => ({ id: c.id, name: c.name, memberCount: c.members.size }));
+    res.json({ channels: voiceChannels });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/whitelist/add", (req, res) => {
+app.get("/api/voice-blocked", (req, res) => {
+  res.json({ blocked: Array.from(voiceBlockedUsers) });
+});
+
+app.get("/api/active-panels", (req, res) => {
+  res.json({
+    ingames: Array.from(ingameList.entries()).map(([msgId, d]) => ({ msgId, ...d, userCount: d.users.length })),
+    etkinlikler: Array.from(etkinlikList.entries()).map(([msgId, d]) => ({ msgId, ...d, userCount: d.users.length })),
+    aktiflikler: Array.from(aktiflikList.entries()).map(([msgId, d]) => ({ msgId, ...d, joinedCount: d.joined.size }))
+  });
+});
+
+// ===================== POST / ACTION ENDPOINTS =====================
+app.post("/api/admin/staff/add", requireAuth("owner"), (req, res) => {
   try {
     const { userId } = req.body;
-    if (!userId) return res.status(400).json({ error: "userId gerekli" });
-    whitelist.add(userId);
-    saveWhitelist();
-    pushLog("guard", "Whitelist Eklendi", userId, "Web Panel");
-    res.json({ success: true, whitelist: Array.from(whitelist) });
+    if (!userId) return res.status(400).json({ error: "userId gerekli." });
+    staffIds.add(userId);
+    saveStaff();
+    pushLog("mod", "[PANEL] Staff Eklendi", `${userId} | Yapan: ${req.executorId}`);
+    res.json({ success: true, staff: Array.from(staffIds) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/whitelist/remove", (req, res) => {
+app.post("/api/admin/staff/remove", requireAuth("owner"), (req, res) => {
   try {
     const { userId } = req.body;
-    if (!userId) return res.status(400).json({ error: "userId gerekli" });
-    whitelist.delete(userId);
-    saveWhitelist();
-    pushLog("guard", "Whitelist Çıkarıldı", userId, "Web Panel");
-    res.json({ success: true, whitelist: Array.from(whitelist) });
+    if (!userId) return res.status(400).json({ error: "userId gerekli." });
+    if (isOwner(userId)) return res.status(400).json({ error: "Owner yetkisi kaldırılamaz." });
+    staffIds.delete(userId);
+    saveStaff();
+    pushLog("mod", "[PANEL] Staff Kaldırıldı", `${userId} | Yapan: ${req.executorId}`);
+    res.json({ success: true, staff: Array.from(staffIds) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/ban-aff/delete", (req, res) => {
+app.post("/api/admin/ot-yetki/add", requireAuth("admin"), (req, res) => {
   try {
-    const { id } = req.body;
-    if (!id) return res.status(400).json({ error: "id gerekli" });
-    banAffRecords = banAffRecords.filter(r => r.id !== id && r.userId !== id);
-    saveBanAff();
-    pushLog("banaff", "Ban Affı Silindi", `ID: ${id}`, "Web Panel");
-    res.json({ success: true, records: banAffRecords });
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli." });
+    if (!otYetkililer.includes(userId)) otYetkililer.push(userId);
+    saveAuth();
+    pushLog("weed", "[PANEL] OT Yetki Eklendi", `${userId} | Yapan: ${req.executorId}`);
+    res.json({ success: true, otYetkililer });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/ban-aff/reset", (req, res) => {
+app.post("/api/admin/ot-yetki/remove", requireAuth("admin"), (req, res) => {
   try {
-    banAffRecords = [];
-    saveBanAff();
-    pushLog("banaff", "Tüm Ban Affı Talepleri Sıfırlandı", "-", "Web Panel");
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli." });
+    otYetkililer = otYetkililer.filter(id => id !== userId);
+    saveAuth();
+    pushLog("weed", "[PANEL] OT Yetki Kaldırıldı", `${userId} | Yapan: ${req.executorId}`);
+    res.json({ success: true, otYetkililer });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/nick", requireAuth("moderator"), async (req, res) => {
+  try {
+    const { userId, nick } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli." });
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild yok." });
+    const member = await guild.members.fetch(userId).catch(() => null);
+    if (!member) return res.status(404).json({ error: "Üye bulunamadı." });
+    await member.setNickname(nick || null, `[Panel] Yapan: ${req.executorId}`);
+    pushLog("mod", "[PANEL] Nick Değiştirildi", `${userId} → "${nick}"`);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/admin/ot/update", (req, res) => {
+app.post("/api/admin/messages/bulk-delete", requireAuth("moderator"), async (req, res) => {
   try {
-    const { userId, amount, isReset } = req.body;
-    if (!userId) return res.status(400).json({ error: "userId gerekli" });
-    ensureUser(userId);
-    if (isReset) {
-      envanter[userId].ot = 0;
-    } else {
-      envanter[userId].ot = Math.max(0, (envanter[userId].ot || 0) + (parseInt(amount) || 0));
+    const { channelId, count } = req.body;
+    if (!channelId || !count) return res.status(400).json({ error: "channelId ve count gerekli." });
+    const guild = getMainGuild();
+    const ch = guild?.channels.cache.get(channelId);
+    if (!ch) return res.status(404).json({ error: "Kanal bulunamadı." });
+    const msgs = await ch.bulkDelete(Math.min(100, Math.max(1, parseInt(count))), true).catch(() => null);
+    if (!msgs) return res.status(400).json({ error: "Mesajlar silinemedi (14 günden eski mesajlar silinemez)." });
+    pushLog("mod", "[PANEL] Toplu Silme", `${msgs.size} mesaj | #${ch.name}`);
+    res.json({ success: true, deletedCount: msgs.size });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/channel/nuke", requireAuth("admin"), async (req, res) => {
+  try {
+    const { channelId } = req.body;
+    if (!channelId) return res.status(400).json({ error: "channelId gerekli." });
+    const guild = getMainGuild();
+    const old = guild?.channels.cache.get(channelId);
+    if (!old) return res.status(404).json({ error: "Kanal bulunamadı." });
+    const newCh = await old.clone({ reason: `[Panel Nuke] Yapan: ${req.executorId}` }).catch(() => null);
+    if (!newCh) return res.status(500).json({ error: "Kanal klonlanamadı." });
+    await newCh.setPosition(old.position).catch(() => {});
+    await old.delete().catch(() => {});
+    await newCh.send({ embeds: [createEmbed(guild, { title: line(EMOJI.warn, "ɴᴜᴋᴇ"), description: `${EMOJI.success} ・ Kanal panel üzerinden sıfırlandı.` })] }).catch(() => {});
+    pushLog("channel", "[PANEL] Nuke", `#${old.name}`);
+    res.json({ success: true, newChannelId: newCh.id });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/dm/send", requireAuth("admin"), async (req, res) => {
+  try {
+    const { roleId, message } = req.body;
+    if (!roleId || !message) return res.status(400).json({ error: "roleId ve message gerekli." });
+    const guild = getMainGuild();
+    const role = guild?.roles.cache.get(roleId);
+    if (!role) return res.status(404).json({ error: "Rol bulunamadı." });
+    let sent = 0, fail = 0;
+    for (const member of role.members.values()) {
+      await new Promise(r => setTimeout(r, 1000));
+      try { await member.send(message); sent++; } catch { fail++; }
     }
-    saveEnvanter();
-    pushLog("weed", "OT Güncellendi", `${userId} -> ${isReset ? "Sıfırlandı" : amount}`, "Web Panel");
-    res.json({ success: true, ot: envanter[userId].ot });
+    pushLog("mod", "[PANEL] Role DM", `Rol: ${role.name} | Başarılı: ${sent}, Başarısız: ${fail}`);
+    res.json({ success: true, sent, fail });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/voice/join", requireAuth("moderator"), (req, res) => {
+  try {
+    const { channelId } = req.body;
+    if (!channelId) return res.status(400).json({ error: "channelId gerekli." });
+    const guild = getMainGuild();
+    const vc = guild?.channels.cache.get(channelId);
+    if (!vc) return res.status(404).json({ error: "Ses kanalı bulunamadı." });
+    joinVoiceChannel({ channelId: vc.id, guildId: guild.id, adapterCreator: guild.voiceAdapterCreator, selfDeaf: true, selfMute: false });
+    pushLog("voice", "[PANEL] Sese Girildi", `#${vc.name}`);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/voice/leave", requireAuth("moderator"), (req, res) => {
+  try {
+    const guild = getMainGuild();
+    const conn = getVoiceConnection(guild.id);
+    if (!conn) return res.status(400).json({ error: "Bot seste değil." });
+    conn.destroy();
+    pushLog("voice", "[PANEL] Sesten Çıkıldı", guild.name);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/voice/mute-all", requireAuth("moderator"), async (req, res) => {
+  try {
+    const { channelId } = req.body;
+    if (!channelId) return res.status(400).json({ error: "channelId gerekli." });
+    const guild = getMainGuild();
+    const vc = guild?.channels.cache.get(channelId);
+    if (!vc) return res.status(404).json({ error: "Kanal bulunamadı." });
+    let count = 0;
+    for (const [, m] of vc.members) { if (!m.user.bot) await m.voice.setMute(true).then(() => count++).catch(() => {}); }
+    pushLog("voice", "[PANEL] All Mute", `#${vc.name} | ${count} kişi`);
+    res.json({ success: true, count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/voice/unmute-all", requireAuth("moderator"), async (req, res) => {
+  try {
+    const { channelId } = req.body;
+    if (!channelId) return res.status(400).json({ error: "channelId gerekli." });
+    const guild = getMainGuild();
+    const vc = guild?.channels.cache.get(channelId);
+    if (!vc) return res.status(404).json({ error: "Kanal bulunamadı." });
+    let count = 0;
+    for (const [, m] of vc.members) { if (!m.user.bot) await m.voice.setMute(false).then(() => count++).catch(() => {}); }
+    pushLog("voice", "[PANEL] All Unmute", `#${vc.name} | ${count} kişi`);
+    res.json({ success: true, count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/voice/move", requireAuth("moderator"), async (req, res) => {
+  try {
+    const { sourceChannelId, targetChannelId } = req.body;
+    if (!sourceChannelId || !targetChannelId) return res.status(400).json({ error: "Eksik kanal ID." });
+    const guild = getMainGuild();
+    const src = guild?.channels.cache.get(sourceChannelId);
+    const target = guild?.channels.cache.get(targetChannelId);
+    if (!src || !target) return res.status(404).json({ error: "Kanal bulunamadı." });
+    let count = 0;
+    for (const [, m] of src.members) { if (!m.user.bot) await m.voice.setChannel(target).then(() => count++).catch(() => {}); }
+    pushLog("voice", "[PANEL] Ses Taşıma", `#${src.name} → #${target.name} | ${count} kişi`);
+    res.json({ success: true, count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/voice-block/add", requireAuth("moderator"), async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli." });
+    voiceBlockedUsers.add(userId);
+    const guild = getMainGuild();
+    const m = await guild?.members.fetch(userId).catch(() => null);
+    if (m?.voice?.channel) await m.voice.disconnect().catch(() => {});
+    pushLog("voice", "[PANEL] Ses Yasağı Eklendi", userId);
+    res.json({ success: true, blocked: Array.from(voiceBlockedUsers) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/voice-block/remove", requireAuth("moderator"), (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId gerekli." });
+    voiceBlockedUsers.delete(userId);
+    pushLog("voice", "[PANEL] Ses Yasağı Kaldırıldı", userId);
+    res.json({ success: true, blocked: Array.from(voiceBlockedUsers) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/config/update", requireAuth("admin"), (req, res) => {
+  try {
+    const { key, value } = req.body;
+    if (!key) return res.status(400).json({ error: "key gerekli." });
+    if (key.startsWith("logs.")) {
+      const logKey = key.replace("logs.", "");
+      if (!config.logs) config.logs = {};
+      config.logs[logKey] = value;
+    } else {
+      config[key] = value;
+    }
+    saveConfig();
+    pushLog("mod", "[PANEL] Config Güncellendi", `${key} = ${value}`);
+    res.json({ success: true, config });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/maintenance/toggle", requireAuth("owner"), (req, res) => {
+  try {
+    maintenanceMode = !maintenanceMode;
+    pushLog("mod", "[PANEL] Bakım Modu", maintenanceMode ? "AÇıldı" : "Kapatıldı");
+    res.json({ success: true, maintenance: maintenanceMode });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/url-protection/toggle", requireAuth("owner"), (req, res) => {
+  try {
+    urlProtection.enabled = !urlProtection.enabled;
+    pushLog("guard", "[PANEL] URL Koruma", urlProtection.enabled ? "AÇıldı" : "Kapatıldı");
+    res.json({ success: true, urlProtection: urlProtection.enabled });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/setup", requireAuth("admin"), async (req, res) => {
+  try {
+    const guild = getMainGuild();
+    if (!guild) return res.status(500).json({ error: "Guild bulunamadı." });
+    const cat = await guild.channels.create({ name: "•・ᴍᴏᴅᴇʀᴀꜱʏᴏɴ ʟᴏɢs", type: ChannelType.GuildCategory });
+    const logChs = [
+      { name: "•・ʙᴀɴ ʟᴏɢ", key: "banLog" }, { name: "•・ᴋɪᴄᴋ ʟᴏɢ", key: "kickLog" },
+      { name: "•・ᴍᴇꜱᴀᴊ ʟᴏɢ", key: "msgLog" }, { name: "•・ʀᴏʟ ʟᴏɢ", key: "roleLog" },
+      { name: "•・ᴋᴀɴᴀʟ ʟᴏɢ", key: "channelLog" }, { name: "•・ᴛɪᴄᴋᴇᴛ ʟᴏɢ", key: "ticketLog" },
+      { name: "•・ꜱᴇꜱ ʟᴏɢ", key: "voiceLog" }, { name: "•・ʙᴏᴛ ʟᴏɢ", key: "botLog" }
+    ];
+    if (!config.logs) config.logs = {};
+    for (const l of logChs) { const ch = await guild.channels.create({ name: l.name, type: ChannelType.GuildText, parent: cat.id }); config.logs[l.key] = ch.id; }
+    saveConfig();
+    pushLog("mod", "[PANEL] Setup Tamamlandı", `${logChs.length} log kanalı kuruldu.`);
+    res.json({ success: true, logs: config.logs });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/ingame/cancel", requireAuth("moderator"), async (req, res) => {
+  try {
+    const { msgId } = req.body;
+    if (!msgId) return res.status(400).json({ error: "msgId gerekli." });
+    const guild = getMainGuild();
+    await closeIngame(guild, msgId, `Web Panel üzerinden iptal edildi (${req.executorId})`);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/admin/aktiflik/cancel", requireAuth("moderator"), async (req, res) => {
+  try {
+    const { msgId } = req.body;
+    if (!msgId) return res.status(400).json({ error: "msgId gerekli." });
+    const guild = getMainGuild();
+    await closeAktiflik(guild, msgId, `Web Panel üzerinden iptal edildi (${req.executorId})`);
+    res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1371,7 +1482,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const ch = interaction.options.getChannel("kanal"); config.aktiflikLogChannelId = ch.id; saveConfig();
         return replyE(interaction, createEmbed(guild, { title: line(EMOJI.success, "ᴋᴀʏᴅᴇᴅɪʟᴅɪ"), description: `${EMOJI.success} ・ Aktiflik log: ${ch}` }));
       }
-      if (sub === "basulat") {
+      if (sub === "baslat") {
         if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
         const role = interaction.options.getRole("rol"), sureText = interaction.options.getString("sure");
         const dMs = parseDurationToMs(sureText);
