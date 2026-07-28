@@ -73,7 +73,7 @@ const isGuardCommandUser = (id) => id === GUARD_MASTER_ID;
 
 // Not: media.discordapp.net linkleri süreli imza (ex/is/hm) taşır ve zamanla expire olabilir.
 // Onun yerine kalıcı cdn.discordapp.com linkini kullanıyoruz (mesaj silinmediği sürece bozulmaz).
-const DEFAULT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1525920078720143551/1525933790554231027/content.png";
+const DEFAULT_IMAGE_URL = "https://media.discordapp.net/attachments/1525920078720143551/1531761971769380914/ChatGPT_Image_28_Tem_2026_23_33_51.png?ex=6a6a6400&is=6a691280&hm=e42621c9329ebd0f4c58bbfdf658940144e806eb297584fb91681518c5124c8c&=&format=webp&quality=lossless&width=1872&height=749";
 
 const BOT_IMAGE_URL = (process.env.BOT_IMAGE_URL || "").trim() || DEFAULT_IMAGE_URL;
 const TICKET_BANNER_URL = (process.env.TICKET_BANNER_URL || "").trim() || BOT_IMAGE_URL;
