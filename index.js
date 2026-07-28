@@ -1836,7 +1836,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 // ===================== PRESENCE / READY =====================
 function setBotPresence() {
   if (!client.user) return;
-  client.user.setPresence({ activities: [{ name: "Vazgucxn 🤍 Knesta", type: ActivityType.Playing }], status: "dnd" });
+  client.user.setPresence({ activities: [{ name: "Vazexa 🤍 Chapo", type: ActivityType.Playing }], status: "dnd" });
 }
 client.once(Events.ClientReady, () => {
   console.log(`🟢 Bot aktif: ${client.user.tag}`);
