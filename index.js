@@ -77,9 +77,9 @@ const DEFAULT_IMAGE_URL = "https://media.discordapp.net/attachments/152592007872
 
 const BOT_IMAGE_URL = (process.env.BOT_IMAGE_URL || "").trim() || DEFAULT_IMAGE_URL;
 const TICKET_BANNER_URL = (process.env.TICKET_BANNER_URL || "").trim() || BOT_IMAGE_URL;
-const PANEL_AUTHOR = (process.env.PANEL_AUTHOR || "Vazgucxn Assistant").trim();
+const PANEL_AUTHOR = (process.env.PANEL_AUTHOR || "Vazexa Assistant").trim();
 const FOOTER_TEXT = (process.env.FOOTER_TEXT || "Developed by Vazgucxn").trim();
-const CFX_CODE = (process.env.CFX_CODE || "xjx5kr").trim();
+const CFX_CODE = (process.env.CFX_CODE || "8emv3b3").trim();
 
 const NAVY = 0x0b1a3a;
 
@@ -266,7 +266,7 @@ async function getServerPlayersCached() {
   const now = Date.now();
   if (cachedPlayersJson && now - lastPlayersFetchAt < 30000) return cachedPlayersJson;
 
-  const url = `https://servers-frontend.fivem.net/api/servers/single/${CFX_CODE}`;
+  const url = `https://frontend.cfx-services.net/api/servers/single/8emv3b3`;
   const res = await fetchWithTimeout(url, {}, 5000);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
@@ -1055,6 +1055,64 @@ async function handleAktiflikStats(interaction) {
   return interaction.reply({ embeds: [statsEmbed(interaction.guild, member)], flags: 64 });
 }
 
+// ===================== AKTİF EKİPLER (nickname'den ekip ismi parse) =====================
+// Nickname formatı: "(Ekip İsmi) x KullanıcıAdı"  →  "x" karakterinin SOLUNDAKİ kısım ekip ismidir.
+function parseEkipFromNickname(nickname) {
+  if (!nickname) return null;
+
+  // " x " (etrafında boşluk olan bağımsız x) ile ayır
+  const match = nickname.match(/^(.*?)\s+x\s+.+$/i);
+  if (!match) return null;
+
+  let ekip = match[1].trim();
+  // Baştaki/sondaki parantezleri temizle: "(Vazex)" -> "Vazex"
+  ekip = ekip.replace(/^[\(\[]+/, "").replace(/[\)\]]+$/, "").trim();
+
+  if (!ekip) return null;
+  return ekip;
+}
+
+async function buildAktifEkiplerEmbed(guild) {
+  let members;
+  try {
+    members = await guild.members.fetch();
+  } catch {
+    members = guild.members.cache;
+  }
+
+  const teamMap = new Map(); // ekipAdıLower -> { displayName, count }
+  let eslesenUyeSayisi = 0;
+
+  for (const [, member] of members) {
+    if (member.user.bot) continue;
+    const displayName = member.displayName || member.user.username;
+    const ekip = parseEkipFromNickname(displayName);
+    if (!ekip) continue;
+
+    eslesenUyeSayisi++;
+    const key = ekip.toLowerCase();
+    if (!teamMap.has(key)) {
+      teamMap.set(key, { displayName: ekip, count: 0 });
+    }
+    teamMap.get(key).count++;
+  }
+
+  const sorted = Array.from(teamMap.values()).sort((a, b) => b.count - a.count);
+
+  const list = sorted.length
+    ? sorted.map((t, idx) => `**${idx + 1}.** ${EMOJI.crown} ・ **${t.displayName}** — \`${t.count}\` kişi`).join("\n")
+    : line(EMOJI.warn, "Nickname formatına uyan (Ekip İsmi) x Kullanıcı hiç kimse bulunamadı.");
+
+  return createEmbed(guild, {
+    title: line(EMOJI.shield, "ᴀᴋᴛɪꜰ ᴇᴋɪᴘʟᴇʀ"),
+    description:
+      `${EMOJI.info} ・ Toplam Ekip Sayısı: **${sorted.length}**\n` +
+      `${EMOJI.right} ・ Eşleşen Üye Sayısı: **${eslesenUyeSayisi}**\n\n` +
+      list,
+    image: BOT_IMAGE_URL || undefined
+  });
+}
+
 // ===================== SLASH KOMUTLARI =====================
 const commands = [
   new SlashCommandBuilder()
@@ -1196,7 +1254,11 @@ const commands = [
   new SlashCommandBuilder()
     .setName("tag")
     .setDescription("FiveM sunucusunda isim/tag araması yapar")
-    .addStringOption((o) => o.setName("arama").setDescription("Aranacak isim parçası").setRequired(true))
+    .addStringOption((o) => o.setName("arama").setDescription("Aranacak isim parçası").setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName("aktifekipler")
+    .setDescription("Sunucudaki nickname'lere göre aktif ekipleri ve üye sayılarını listeler")
 ].map((c) => c.toJSON());
 
 async function registerCommands() {
@@ -1752,11 +1814,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
       });
     }
 
-    // ---- /id ----
+    // ---- /id (artık herkese açık) ----
     if (commandName === "id") {
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
-
       const playerId = interaction.options.getInteger("oyuncu_id");
+
+      await interaction.deferReply().catch(() => {});
 
       try {
         const data = await getPlayerFromCFX(playerId);
@@ -1787,10 +1849,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // ---- /tag ----
+    // ---- /tag (artık herkese açık) ----
     if (commandName === "tag") {
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
-
       const search = interaction.options.getString("arama").trim();
       if (!search) {
         return replyE(interaction, createEmbed(guild, {
@@ -1798,6 +1858,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
           description: line(EMOJI.right, "`/tag arama:kaisen`")
         }), false);
       }
+
+      await interaction.deferReply().catch(() => {});
 
       try {
         const json = await getServerPlayersCached();
@@ -1825,6 +1887,21 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return replyE(interaction, createEmbed(guild, {
           title: line(EMOJI.warn, "ᴀᴘɪ ʜᴀᴛᴀ"),
           description: line(EMOJI.warn, err?.message || "FiveM API bağlantı hatası")
+        }), false);
+      }
+    }
+
+    // ---- /aktifekipler (herkese açık) ----
+    if (commandName === "aktifekipler") {
+      await interaction.deferReply().catch(() => {});
+      try {
+        const embed = await buildAktifEkiplerEmbed(guild);
+        return replyE(interaction, embed, false);
+      } catch (err) {
+        console.error("AKTIFEKIPLER ERROR:", err);
+        return replyE(interaction, createEmbed(guild, {
+          title: line(EMOJI.warn, "ʜᴀᴛᴀ"),
+          description: line(EMOJI.warn, "Ekip listesi hesaplanırken bir hata oluştu.")
         }), false);
       }
     }
