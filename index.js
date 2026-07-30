@@ -268,13 +268,48 @@ function cleanFiveMName(name = "") {
 
 async function getServerPlayersCached() {
   const now = Date.now();
-  if (cachedPlayersJson && now - lastPlayersFetchAt < 30000) return cachedPlayersJson;
+  if (cachedPlayersJson && now - lastPlayersFetchAt < 15000) return cachedPlayersJson;
 
   const url = `https://frontend.cfx-services.net/api/servers/single/${CFX_CODE}`;
-  const res = await fetchWithTimeout(url, {}, 5000);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const res = await fetchWithTimeout(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, 6000);
+  if (!res.ok) throw new Error(`CFX API HTTP ${res.status}`);
 
   const json = await res.json();
+  const cfxPlayers = json?.Data?.players || [];
+  const connectEndPoints = json?.Data?.connectEndPoints || [];
+
+  let directPlayersMap = new Map();
+
+  if (Array.isArray(connectEndPoints) && connectEndPoints.length > 0) {
+    for (const ep of connectEndPoints) {
+      const cleanEp = ep.replace(/^https?:\/\//, "");
+      const directUrls = [`http://${cleanEp}/players.json`, `https://${cleanEp}/players.json`];
+      for (const dUrl of directUrls) {
+        try {
+          const dRes = await fetchWithTimeout(dUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }, 4000);
+          if (dRes.ok) {
+            const dList = await dRes.json();
+            if (Array.isArray(dList)) {
+              dList.forEach((p) => {
+                if (p && p.id !== undefined) directPlayersMap.set(String(p.id), p);
+              });
+              break;
+            }
+          }
+        } catch {}
+      }
+      if (directPlayersMap.size > 0) break;
+    }
+  }
+
+  // Merge direct players.json identifiers into cfxPlayers
+  cfxPlayers.forEach((p) => {
+    const directP = directPlayersMap.get(String(p.id));
+    if (directP && Array.isArray(directP.identifiers) && directP.identifiers.length > 0) {
+      p.identifiers = directP.identifiers;
+    }
+  });
+
   cachedPlayersJson = json;
   lastPlayersFetchAt = now;
   return json;
@@ -293,7 +328,8 @@ async function getPlayerFromCFX(playerId) {
     name: p.name,
     ping: p.ping,
     steam: ids.find((i) => i.startsWith("steam:")) || "Yok",
-    discord: ids.find((i) => i.startsWith("discord:"))?.replace("discord:", "") || "Yok"
+    discord: ids.find((i) => i.startsWith("discord:"))?.replace("discord:", "") || "Yok",
+    license: ids.find((i) => i.startsWith("license:")) || "Yok"
   };
 }
 
