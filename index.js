@@ -41,7 +41,7 @@ if (!_fetch) {
   try {
     _fetch = (...args) => import("node-fetch").then(({ default: f }) => f(...args));
   } catch (e) {
-    console.error("❌ fetch yok! Node 18+ kullan veya node-fetch kur.");
+    console.error("❌ fetch yok!");
     process.exit(1);
   }
 }
@@ -77,8 +77,8 @@ const isGuardCommandUser = (id) => id === GUARD_MASTER_ID;
 const DEFAULT_IMAGE_URL = "https://media.discordapp.net/attachments/1525920078720143551/1531761971769380914/ChatGPT_Image_28_Tem_2026_23_33_51.png";
 const BOT_IMAGE_URL = (process.env.BOT_IMAGE_URL || "").trim() || DEFAULT_IMAGE_URL;
 const TICKET_BANNER_URL = (process.env.TICKET_BANNER_URL || "").trim() || BOT_IMAGE_URL;
-const PANEL_AUTHOR = (process.env.PANEL_AUTHOR || "Chapo Assistant").trim();
-const FOOTER_TEXT = (process.env.FOOTER_TEXT || "Developed by Vazgucxn").trim();
+const PANEL_AUTHOR = (process.env.PANEL_AUTHOR || "UpStar Assistant").trim();
+const FOOTER_TEXT = (process.env.FOOTER_TEXT || "Developed by UpStar").trim();
 const CFX_CODE = (process.env.CFX_CODE || "8emv3b3").trim();
 
 const NAVY = 0x0b1a3a;
@@ -212,7 +212,7 @@ const ingameList = new Map();
 const pendingOtDeliveries = new Map();
 let aktiflikLogChannelId = null;
 
-// ===================== HELPERS =====================
+// ===================== HELPERS & EMBED SYSTEM =====================
 function baseEmbed(guild) {
   const authorIcon = guild?.iconURL?.({ size: 128 }) || undefined;
   return new EmbedBuilder()
@@ -243,8 +243,8 @@ async function sendLog(guild, embed) {
 
 function noPerm(interaction) {
   return replyE(interaction, createEmbed(interaction.guild, {
-    title: line(EMOJI.basarisiz, "ʏᴇᴛᴋı̇ ʏᴏᴋ"),
-    description: line(EMOJI.sebep, "ʙᴜ ᴋᴏᴍᴜᴛᴜ ᴋᴜʟʟᴀɴᴍᴀ ʏᴇᴛᴋı̇ɴ ʏᴏᴋ.")
+    title: line(EMOJI.basarisiz, "yeᴛkɪ yok"),
+    description: line(EMOJI.sebep, "bu komuᴛu kullanma yeᴛkɪn yok.")
   }), true);
 }
 
@@ -270,11 +270,23 @@ async function getServerPlayersCached() {
   const now = Date.now();
   if (cachedPlayersJson && now - lastPlayersFetchAt < 15000) return cachedPlayersJson;
 
-  const url = `https://frontend.cfx-services.net/api/servers/single/${CFX_CODE}`;
-  const res = await fetchWithTimeout(url, {}, 5000);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const endpoints = [
+    `https://frontend.cfx-services.net/api/servers/single/${CFX_CODE}`,
+    `https://servers-frontend.fivem.net/api/servers/single/${CFX_CODE}`
+  ];
 
-  const json = await res.json();
+  let json = null;
+  for (const url of endpoints) {
+    try {
+      const res = await fetchWithTimeout(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, 6000);
+      if (res.ok) {
+        json = await res.json();
+        if (json && (json.Data || json.players)) break;
+      }
+    } catch {}
+  }
+
+  if (!json) throw new Error("FiveM sunucu API'sine bağlanılamadı.");
   cachedPlayersJson = json;
   lastPlayersFetchAt = now;
   return json;
@@ -293,12 +305,6 @@ function touchLastMessage(id) {
 }
 function touchLastVoiceJoin(id) {
   ensureActivity(id).lastVoiceJoinAt = Date.now();
-  saveJSON(ACTIVITY_FILE, activityStore, "activity.json");
-}
-function touchIngameJoin(id, eventName = "Etkinlik") {
-  const userStats = ensureActivity(id);
-  userStats.ingameCount += 1;
-  userStats.events.push({ name: eventName, date: new Date().toLocaleDateString("tr-TR"), timestamp: Date.now() });
   saveJSON(ACTIVITY_FILE, activityStore, "activity.json");
 }
 
@@ -390,7 +396,7 @@ function guardPanelEmbed(guild) {
   const win = Math.max(1, Number(guardConfig.windowMinutes || 10));
 
   return createEmbed(guild, {
-    title: line(EMOJI.moryildiz, "ɢᴜᴀʀᴅ ᴘᴀɴᴇʟ"),
+    title: line(EMOJI.moryildiz, "guard panel"),
     description:
       `${EMOJI.data} · **${toSmallCaps("sistem durumu")}**\n` +
       `${EMOJI.sebep} · Ban Guard: ${isGuardEnabled("ban") ? on : off}\n` +
@@ -439,7 +445,7 @@ async function guardHit(guild, executorId, key, reasonText) {
   counter[key] = (counter[key] || 0) + 1;
 
   await sendLog(guild, createEmbed(guild, {
-    title: line(EMOJI.basarisiz, "ɢᴜᴀʀᴅ ᴀʟᴀʀᴍ"),
+    title: line(EMOJI.basarisiz, "guard alarm"),
     description:
       `${EMOJI.data} · İşlem: **${key.toUpperCase()}**\n` +
       `${EMOJI.sagok} · Yapan: <@${executorId}>\n` +
@@ -451,7 +457,7 @@ async function guardHit(guild, executorId, key, reasonText) {
   if (counter[key] >= limit) {
     const punished = await punishMember(guild, executorId, `GUARD: ${reasonText} (limit aşıldı)`);
     await sendLog(guild, createEmbed(guild, {
-      title: line(EMOJI.basarisiz, "ɢᴜᴀʀᴅ ᴍᴜᴅᴀʜᴀʟᴇ"),
+      title: line(EMOJI.basarisiz, "guard mudahale"),
       description:
         `${EMOJI.basarili} · Limit aşıldı, işlem uygulandı.\n` +
         `${EMOJI.sagok} · Yapan: <@${executorId}>\n` +
@@ -568,20 +574,37 @@ async function handleTicketOpen(interaction) {
   await interaction.deferReply({ flags: 64 });
 
   if (!isTicketOpen()) {
-    return interaction.editReply(`${EMOJI.basarisiz} · ${toSmallCaps("başvurular şu an kapalı.")}`);
+    return replyE(interaction, createEmbed(guild, {
+      title: line(EMOJI.basarisiz, "başvurular kapalı"),
+      description: line(EMOJI.sebep, "başvurular şu an geçici olarak kapalıdır.")
+    }), true);
   }
 
   if (!config.ticketCategoryId || !config.ticketStaffRoleId) {
-    return interaction.editReply(`${EMOJI.basarisiz} · ${toSmallCaps("ticket sistemi ayarlı değil.")}`);
+    return replyE(interaction, createEmbed(guild, {
+      title: line(EMOJI.basarisiz, "sistem ayarsız"),
+      description: line(EMOJI.sebep, "ticket kategorisi veya yetkili rolü ayarlanmamış.")
+    }), true);
   }
+
   const category = guild.channels.cache.get(config.ticketCategoryId);
-  if (!category) return interaction.editReply(`${EMOJI.basarisiz} · ${toSmallCaps("ticket kategorisi geçersiz.")}`);
+  if (!category) {
+    return replyE(interaction, createEmbed(guild, {
+      title: line(EMOJI.basarisiz, "kategori hatası"),
+      description: line(EMOJI.sebep, "ticket kategorisi bulunamadı.")
+    }), true);
+  }
 
   const safe = (interaction.user.username || "user").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
   const name = `basvuru-${safe}`;
 
   const existing = guild.channels.cache.find((c) => c.parentId === category.id && c.name === name);
-  if (existing) return interaction.editReply(`${EMOJI.basarisiz} · ${toSmallCaps("zaten açık ticketin var")}: ${existing}`);
+  if (existing) {
+    return replyE(interaction, createEmbed(guild, {
+      title: line(EMOJI.basarisiz, "zaten açık ticket var"),
+      description: line(EMOJI.sagok, `zaten açık olan bir ticketiniz bulunmaktadır: ${existing}`)
+    }), true);
+  }
 
   const ch = await guild.channels.create({
     name,
@@ -619,21 +642,28 @@ async function handleTicketOpen(interaction) {
     components: [row]
   });
 
-  return interaction.editReply(`${EMOJI.basarili} · ${toSmallCaps("ticket açıldı")}: ${ch}`);
+  return replyE(interaction, createEmbed(guild, {
+    title: line(EMOJI.basarili, "ticket açıldı"),
+    description: line(EMOJI.sagok, `ticket kanalınız oluşturuldu: ${ch}`)
+  }), true);
 }
 
 async function handleBasvuruKarar(interaction, kabul) {
   const guild = interaction.guild;
   const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
-  if (!isStaff(interaction.user.id) && !isAdmin) {
-    return interaction.reply({ content: `${EMOJI.basarisiz} · ${toSmallCaps("bu işlemi yapma yetkin yok.")}`, flags: 64 });
-  }
+  if (!isStaff(interaction.user.id) && !isAdmin) return noPerm(interaction);
+
   await interaction.deferReply({ flags: 64 });
 
   const applicantId = interaction.customId.replace(kabul ? "basvuru_kabul_" : "basvuru_reddet_", "");
   const member = await guild.members.fetch(applicantId).catch(() => null);
 
-  if (kabul && !member) return interaction.editReply(`${EMOJI.basarisiz} · ${toSmallCaps("başvuru sahibi sunucuda bulunamadı.")}`);
+  if (kabul && !member) {
+    return replyE(interaction, createEmbed(guild, {
+      title: line(EMOJI.basarisiz, "üye bulunamadı"),
+      description: line(EMOJI.sebep, "başvuru sahibi sunucudan ayrılmış.")
+    }), true);
+  }
 
   if (kabul) {
     const rolesToAdd = [];
@@ -669,7 +699,10 @@ async function handleBasvuruKarar(interaction, kabul) {
     }).catch(() => {});
   }
 
-  return interaction.editReply(kabul ? `${EMOJI.basarili} · Başvuru kabul edildi ve rol verildi.` : `${EMOJI.basarisiz} · Başvuru reddedildi.`);
+  return replyE(interaction, createEmbed(guild, {
+    title: kabul ? line(EMOJI.basarili, "başvuru onaylandı") : line(EMOJI.basarisiz, "başvuru reddedildi"),
+    description: line(EMOJI.sagok, kabul ? "kullanıcıya rol verildi ve dm gönderildi." : "başvuru reddedildi ve üye bilgilendirildi.")
+  }), true);
 }
 
 async function handleTicketClose(interaction) {
@@ -677,7 +710,10 @@ async function handleTicketClose(interaction) {
   const opener = ticketOwners.get(interaction.channel.id);
   const admin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
   if (interaction.user.id !== opener && !admin && !isStaff(interaction.user.id)) {
-    return interaction.editReply(`${EMOJI.basarisiz} · Yetkin yok.`);
+    return replyE(interaction, createEmbed(interaction.guild, {
+      title: line(EMOJI.basarisiz, "yetki yok"),
+      description: line(EMOJI.sebep, "bu kanalı kapatma yetkin yok.")
+    }), true);
   }
   await interaction.channel.delete().catch(() => {});
   ticketOwners.delete(interaction.channel.id);
@@ -788,38 +824,34 @@ async function closeAktiflik(guild, msgId, reason) {
 async function handleAktiflikJoin(interaction) {
   const msgId = interaction.message.id;
   const data = aktiflikList.get(msgId);
-  if (!data) return interaction.reply({ content: `${EMOJI.basarisiz} · ${toSmallCaps("bu test artık aktif değil.")}`, flags: 64 });
-  if (data.closed) return interaction.reply({ content: `${EMOJI.basarisiz} · ${toSmallCaps("bu test sona erdi.")}`, flags: 64 });
-  if (data.joined.has(interaction.user.id)) return interaction.reply({ content: `${EMOJI.basarisiz} · ${toSmallCaps("zaten katıldın.")}`, flags: 64 });
+  if (!data) return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "test pasif"), description: line(EMOJI.sebep, "bu aktiflik testi artık aktif değil.") }), true);
+  if (data.closed) return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "test kapandı"), description: line(EMOJI.sebep, "bu test sona erdi.") }), true);
+  if (data.joined.has(interaction.user.id)) return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "zaten katıldın"), description: line(EMOJI.sagok, "bu teste katılımınız zaten mevcut.") }), true);
 
   data.joined.add(interaction.user.id);
   await refreshAktiflikMessage(interaction.guild, msgId);
-  return interaction.reply({ content: `${EMOJI.basarili} · ${toSmallCaps("aktiflik testine katılımın kaydedildi!")}`, flags: 64 });
+  return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarili, "katılım sağlandı"), description: line(EMOJI.sagok, "aktiflik testine katılımınız başarıyla kaydedildi.") }), true);
 }
 
 async function handleAktiflikCancel(interaction) {
   const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
-  if (!isStaff(interaction.user.id) && !isAdmin) {
-    return interaction.reply({ content: `${EMOJI.basarisiz} · ${toSmallCaps("bu işlemi yapma yetkin yok.")}`, flags: 64 });
-  }
+  if (!isStaff(interaction.user.id) && !isAdmin) return noPerm(interaction);
 
   await interaction.deferReply({ flags: 64 });
   const msgId = interaction.message.id;
   const data = aktiflikList.get(msgId);
-  if (!data) return interaction.editReply(`${EMOJI.basarisiz} · ${toSmallCaps("bu test artık aktif değil.")}`);
-  if (data.closed) return interaction.editReply(`${EMOJI.basarisiz} · ${toSmallCaps("bu test zaten kapalı.")}`);
+  if (!data) return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "test bulunamadı") }), true);
+  if (data.closed) return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "zaten kapalı") }), true);
 
   data.closed = true;
   if (data.timer) { clearTimeout(data.timer); data.timer = null; }
   await refreshAktiflikMessage(interaction.guild, msgId);
-  return interaction.editReply(`${EMOJI.basarisiz} · ${toSmallCaps("aktiflik testi iptal edildi.")}`);
+  return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarili, "test iptal edildi"), description: line(EMOJI.sagok, "aktiflik testi yetkili tarafından iptal edildi.") }), true);
 }
 
 async function handleAktiflikKick(interaction) {
   const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
-  if (!isStaff(interaction.user.id) && !isAdmin) {
-    return interaction.reply({ content: `${EMOJI.basarisiz} · ${toSmallCaps("bu işlemi yapma yetkin yok.")}`, flags: 64 });
-  }
+  if (!isStaff(interaction.user.id) && !isAdmin) return noPerm(interaction);
 
   await interaction.deferReply({ flags: 64 });
   const parts = interaction.customId.replace("aktiflik_kick_", "").split("_");
@@ -827,18 +859,18 @@ async function handleAktiflikKick(interaction) {
   const roleId = parts[1];
 
   const member = await interaction.guild.members.fetch(targetId).catch(() => null);
-  if (!member) return interaction.editReply(`${EMOJI.basarisiz} · ${toSmallCaps("üye sunucuda bulunamadı.")}`);
+  if (!member) return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "üye ayrılmış") }), true);
 
   if (roleId && interaction.guild.roles.cache.has(roleId)) {
     await member.roles.remove(roleId).catch(() => {});
   }
-  return interaction.editReply(`${EMOJI.basarili} · ${member} ${toSmallCaps("adlı üye ekipten atıldı / rolü alındı.")}`);
+  return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarili, "ekipten atıldı"), description: line(EMOJI.sagok, `${member} üyesinin rolü alındı.`) }), true);
 }
 
 async function handleAktiflikStats(interaction) {
   const targetId = interaction.customId.replace("aktiflik_stats_", "");
   const member = await interaction.guild.members.fetch(targetId).catch(() => null);
-  if (!member) return interaction.reply({ content: `${EMOJI.basarisiz} · ${toSmallCaps("üye bulunamadı.")}`, flags: 64 });
+  if (!member) return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "üye bulunamadı") }), true);
 
   const stats = activityStore[member.id] || { lastMessageAt: null, lastVoiceJoinAt: null, ingameCount: 0 };
 
@@ -851,7 +883,7 @@ async function handleAktiflikStats(interaction) {
       `**${toSmallCaps("toplam i̇ngame katılımı:")}** \`${stats.ingameCount} Defa\``
   }).setFooter({ text: `${interaction.user.username} tarafından istendi.`, iconURL: interaction.user.displayAvatarURL() });
 
-  return interaction.reply({ embeds: [embed], flags: 64 });
+  return replyE(interaction, embed, true);
 }
 
 // ===================== SYSTEM 2: BANLILAR LİSTESİ & BAN AFFI =====================
@@ -889,7 +921,10 @@ async function handleBanAffiSubmit(interaction) {
   bansData.unshift(entry);
   saveJSON(BANS_FILE, bansData, "bans.json");
 
-  return interaction.reply({ content: `${EMOJI.basarili} · ${toSmallCaps("ban affı başvurunuz alındı ve kaydedildi.")}`, flags: 64 });
+  return replyE(interaction, createEmbed(interaction.guild, {
+    title: line(EMOJI.basarili, "ban affı başvurusu alındı"),
+    description: line(EMOJI.sagok, "ban detaylarınız sisteme başarıyla işlendi.")
+  }), true);
 }
 
 function buildBanListEmbed(guild, page = 1) {
@@ -928,11 +963,18 @@ function buildBanListEmbed(guild, page = 1) {
 }
 
 // ===================== SYSTEM 3: FARM / OT SİSTEMİ =====================
+function isOtOpen() {
+  return (config.otDurum || "acik") === "acik";
+}
+
 function otPanelEmbed(guild) {
+  const acik = isOtOpen();
+  const durumKutusu = "```\n[ DURUM: " + (acik ? "AKTİF" : "KAPALI") + " ]\n```";
+
   return createEmbed(guild, {
     title: `${EMOJI.ot} · ${toSmallCaps("ot paneli")}`,
     description:
-      `\`\`\`\n[ DURUM: AKTİF ]\n\`\`\`\n` +
+      `${durumKutusu}\n` +
       `Topladığınız otları sisteme işlemek için aşağıdaki butonu kullanınız.\n\n` +
       `*Lütfen otu teslim ettiğiniz kişinin ismini doğru giriniz.*`,
     image: TICKET_BANNER_URL || undefined
@@ -940,22 +982,48 @@ function otPanelEmbed(guild) {
 }
 
 function otPanelRow() {
+  const acik = isOtOpen();
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("ot_teslim_open")
-      .setLabel(toSmallCaps("ot teslim et"))
+      .setLabel(acik ? toSmallCaps("ot teslim et") : toSmallCaps("ot teslimi kapalı"))
       .setStyle(ButtonStyle.Success)
       .setEmoji(EMOJI.ot)
+      .setDisabled(!acik)
   );
 }
 
+async function refreshOtPanelMessage(guild) {
+  if (!config.otPanelChannelId || !config.otPanelMessageId) return false;
+  try {
+    const ch = await guild.channels.fetch(config.otPanelChannelId).catch(() => null);
+    if (!ch) return false;
+    const msg = await ch.messages.fetch(config.otPanelMessageId).catch(() => null);
+    if (!msg) return false;
+    await msg.edit({ embeds: [otPanelEmbed(guild)], components: [otPanelRow()] });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function handleOtTeslimSubmit(interaction) {
+  if (!isOtOpen()) {
+    return replyE(interaction, createEmbed(interaction.guild, {
+      title: line(EMOJI.basarisiz, "ot teslimatı kapalı"),
+      description: line(EMOJI.sebep, "ot teslimatları şu an kapalı durumdadır.")
+    }), true);
+  }
+
   const countStr = interaction.fields.getTextInputValue("ot_miktar");
   const targetStr = interaction.fields.getTextInputValue("ot_teslim_alan");
   const amount = parseInt(countStr.replace(/\D/g, "")) || 0;
 
   if (amount <= 0) {
-    return interaction.reply({ content: `${EMOJI.basarisiz} · ${toSmallCaps("geçerli bir ot miktarı giriniz.")}`, flags: 64 });
+    return replyE(interaction, createEmbed(interaction.guild, {
+      title: line(EMOJI.basarisiz, "geçersiz miktar"),
+      description: line(EMOJI.sebep, "lütfen geçerli bir ot miktarı giriniz.")
+    }), true);
   }
 
   const deliveryId = `ot_${Date.now()}_${interaction.user.id}`;
@@ -995,7 +1063,10 @@ async function handleOtTeslimSubmit(interaction) {
 
   await logCh.send({ embeds: [embed], components: [select] }).catch(() => {});
 
-  return interaction.reply({ content: `${EMOJI.basarili} · ${toSmallCaps("ot teslimat talebiniz yetkililere iletildi.")}`, flags: 64 });
+  return replyE(interaction, createEmbed(interaction.guild, {
+    title: line(EMOJI.basarili, "teslimat talebi iletildi"),
+    description: line(EMOJI.sagok, `${amount} adet ot teslimatınız yetkililere gönderildi.`)
+  }), true);
 }
 
 async function handleOtApprovalSelect(interaction) {
@@ -1004,9 +1075,7 @@ async function handleOtApprovalSelect(interaction) {
   const delivery = pendingOtDeliveries.get(deliveryId);
 
   const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
-  if (!isStaff(interaction.user.id) && !isAdmin) {
-    return interaction.reply({ content: `${EMOJI.basarisiz} · ${toSmallCaps("bu işlemi yapma yetkin yok.")}`, flags: 64 });
-  }
+  if (!isStaff(interaction.user.id) && !isAdmin) return noPerm(interaction);
 
   await interaction.deferUpdate();
 
@@ -1021,7 +1090,12 @@ async function handleOtApprovalSelect(interaction) {
 
     const sender = await interaction.guild.members.fetch(delivery.senderId).catch(() => null);
     if (sender) {
-      sender.send({ content: `${EMOJI.basarili} · **Tebrikler!** ${delivery.amount} adet ot teslimatınız onaylandı ve hesabınıza işlendi.` }).catch(() => {});
+      sender.send({
+        embeds: [createEmbed(interaction.guild, {
+          title: line(EMOJI.basarili, "ot teslimatı onaylandı"),
+          description: `${EMOJI.basarili} · **Tebrikler!** ${delivery.amount} adet ot teslimatınız onaylandı ve hesabınıza işlendi.`
+        })]
+      }).catch(() => {});
     }
 
     const disabledSelect = new ActionRowBuilder().addComponents(
@@ -1035,7 +1109,12 @@ async function handleOtApprovalSelect(interaction) {
   } else {
     const sender = await interaction.guild.members.fetch(delivery.senderId).catch(() => null);
     if (sender) {
-      sender.send({ content: `${EMOJI.basarisiz} · ${toSmallCaps("ot teslimat talebiniz yetkili tarafından reddedildi.")}` }).catch(() => {});
+      sender.send({
+        embeds: [createEmbed(interaction.guild, {
+          title: line(EMOJI.basarisiz, "ot teslimatı reddedildi"),
+          description: `${EMOJI.basarisiz} · Ot teslimat talebiniz yetkili tarafından reddedildi.`
+        })]
+      }).catch(() => {});
     }
 
     const disabledSelect = new ActionRowBuilder().addComponents(
@@ -1097,7 +1176,10 @@ async function handleDmDuyuru(interaction) {
   const totalCount = roleMembers.length;
 
   if (totalCount === 0) {
-    return interaction.editReply({ content: `${EMOJI.basarisiz} · ${toSmallCaps("bu rolde hiç üye yok.")}` });
+    return replyE(interaction, createEmbed(interaction.guild, {
+      title: line(EMOJI.basarisiz, "üye yok"),
+      description: line(EMOJI.sebep, "seçilen rolde duyuru gönderilecek üye bulunamadı.")
+    }));
   }
 
   let successCount = 0;
@@ -1159,7 +1241,7 @@ async function handleIgSorgu(interaction) {
   if (type === "oyun") {
     try {
       const cfxJson = await getServerPlayersCached();
-      const onlinePlayers = cfxJson?.Data?.players || [];
+      const onlinePlayers = cfxJson?.Data?.players || cfxJson?.players || [];
       const serverName = cfxJson?.Data?.hostname || "NO LOVE YES GUN #MD V18 | disc";
 
       const onlineList = [];
@@ -1189,7 +1271,10 @@ async function handleIgSorgu(interaction) {
 
       return interaction.editReply({ embeds: [embed], components: [row] });
     } catch (e) {
-      return interaction.editReply({ content: `${EMOJI.basarisiz} · FiveM server API sorgulanamadı: ${e.message}` });
+      return replyE(interaction, createEmbed(interaction.guild, {
+        title: line(EMOJI.basarisiz, "api hatası"),
+        description: line(EMOJI.sebep, `fivem api sorgulanamadı: ${e.message}`)
+      }));
     }
   } else {
     let members;
@@ -1260,7 +1345,10 @@ async function handleKullaniciSorgu(interaction) {
     return interaction.editReply({ embeds: [embed] });
   } else {
     if (!targetRole) {
-      return interaction.editReply({ content: `${EMOJI.basarisiz} · ${toSmallCaps("lütfen sorgulanacak rolü seçiniz.")}` });
+      return replyE(interaction, createEmbed(interaction.guild, {
+        title: line(EMOJI.basarisiz, "rol seçilmedi"),
+        description: line(EMOJI.sebep, "lütfen sorgulanacak hedef rolü seçiniz.")
+      }));
     }
 
     let members;
@@ -1351,7 +1439,10 @@ async function handleVeritabaniSifirla(interaction) {
   );
 
   return interaction.reply({
-    content: `👇 **${toSmallCaps("lütfen sıfırlamak istediğiniz veritabanı dosyasını seçiniz:")}**`,
+    embeds: [createEmbed(interaction.guild, {
+      title: line(EMOJI.data, "veritabanı sıfırlama menüsü"),
+      description: `👇 **${toSmallCaps("lütfen sıfırlamak istediğiniz veritabanı dosyasını seçiniz:")}**`
+    })],
     components: [select],
     flags: 64
   });
@@ -1363,15 +1454,24 @@ async function handleVeritabaniSifirlaSelect(interaction) {
   if (value === "ingame") {
     eventsData = [];
     saveJSON(EVENTS_FILE, eventsData, "events.json");
-    return interaction.update({ content: `${EMOJI.basarili} · ${toSmallCaps("ingame verileri başarıyla sıfırlandı.")}`, components: [] });
+    return interaction.update({
+      embeds: [createEmbed(interaction.guild, { title: line(EMOJI.basarili, "ingame verileri sıfırlandı"), description: line(EMOJI.sagok, "oyun içi etkinlik kayıtları başarıyla silindi.") })],
+      components: []
+    });
   } else if (value === "ot") {
     farmData = [];
     saveJSON(FARM_FILE, farmData, "farm.json");
-    return interaction.update({ content: `${EMOJI.basarili} · ${toSmallCaps("ot verileri başarıyla sıfırlandı.")}`, components: [] });
+    return interaction.update({
+      embeds: [createEmbed(interaction.guild, { title: line(EMOJI.basarili, "ot verileri sıfırlandı"), description: line(EMOJI.sagok, "ot teslimat kayıtları başarıyla silindi.") })],
+      components: []
+    });
   } else if (value === "ban") {
     bansData = [];
     saveJSON(BANS_FILE, bansData, "bans.json");
-    return interaction.update({ content: `${EMOJI.basarili} · ${toSmallCaps("ban affı verileri başarıyla sıfırlandı.")}`, components: [] });
+    return interaction.update({
+      embeds: [createEmbed(interaction.guild, { title: line(EMOJI.basarili, "ban verileri sıfırlandı"), description: line(EMOJI.sagok, "ban affı başvuru kayıtları başarıyla silindi.") })],
+      components: []
+    });
   }
 }
 
@@ -1384,7 +1484,7 @@ async function handleIdSorgu(interaction) {
 
   try {
     const cfxJson = await getServerPlayersCached();
-    const players = cfxJson?.Data?.players || [];
+    const players = cfxJson?.Data?.players || cfxJson?.players || [];
 
     let targetPlayer = null;
 
@@ -1398,7 +1498,10 @@ async function handleIdSorgu(interaction) {
     }
 
     if (!targetPlayer) {
-      return interaction.editReply({ content: `${EMOJI.basarisiz} · ${toSmallCaps("eşleşen oyuncu bulunamadı.")}` });
+      return replyE(interaction, createEmbed(interaction.guild, {
+        title: line(EMOJI.basarisiz, "oyuncu bulunamadı"),
+        description: line(EMOJI.sebep, `seçtiğiniz krıterle (${option}: ${value}) eşleşen oyuncu bulunamadı.`)
+      }));
     }
 
     const ids = Array.isArray(targetPlayer.identifiers) ? targetPlayer.identifiers : [];
@@ -1426,8 +1529,61 @@ async function handleIdSorgu(interaction) {
 
     return interaction.editReply({ embeds: [embed], components: [row] });
   } catch (e) {
-    return interaction.editReply({ content: `${EMOJI.basarisiz} · FiveM sunucu verileri çekilemedi: ${e.message}` });
+    return replyE(interaction, createEmbed(interaction.guild, {
+      title: line(EMOJI.basarisiz, "sunucu sorgu hatası"),
+      description: line(EMOJI.sebep, `fivem sunucu verileri çekilemedi: ${e.message}`)
+    }));
   }
+}
+
+// ===================== AKTİF EKİPLER PARSER =====================
+function parseEkipFromNickname(nickname) {
+  if (!nickname) return null;
+  let match = nickname.match(/^(.*?)\s+x\s+.+$/i);
+  if (!match) match = nickname.match(/^[\(\[](.*?)[\)\]]\s*.+$/i);
+  if (!match) match = nickname.match(/^(.*?)\s*[\|-]\s*.+$/i);
+  if (!match) return null;
+
+  let ekip = match[1].trim();
+  ekip = ekip.replace(/^[\(\[]+/, "").replace(/[\)\]]+$/, "").trim();
+  return ekip.length >= 2 ? ekip : null;
+}
+
+async function buildAktifEkiplerEmbed(guild) {
+  let members;
+  try { members = await guild.members.fetch(); } catch { members = guild.members.cache; }
+
+  const teamMap = new Map();
+  let eslesenUyeSayisi = 0;
+
+  for (const [, member] of members) {
+    if (member.user.bot) continue;
+    const displayName = member.displayName || member.user.username;
+    const ekip = parseEkipFromNickname(displayName);
+    if (!ekip) continue;
+
+    eslesenUyeSayisi++;
+    const key = ekip.toLowerCase();
+    if (!teamMap.has(key)) {
+      teamMap.set(key, { displayName: ekip, count: 0 });
+    }
+    teamMap.get(key).count++;
+  }
+
+  const sorted = Array.from(teamMap.values()).sort((a, b) => b.count - a.count);
+
+  const list = sorted.length
+    ? sorted.map((t, idx) => `**${idx + 1}.** ${EMOJI.moryildiz} · **${t.displayName}** — \`${t.count}\` kişi`).join("\n")
+    : line(EMOJI.basarisiz, "Nickname formatına uyan ekip üyesi bulunamadı.");
+
+  return createEmbed(guild, {
+    title: line(EMOJI.moryildiz, "aktif ekipler"),
+    description:
+      `${EMOJI.data} · Toplam Ekip Sayısı: **${sorted.length}**\n` +
+      `${EMOJI.sagok} · Eşleşen Üye Sayısı: **${eslesenUyeSayisi}**\n\n` +
+      list,
+    image: BOT_IMAGE_URL || undefined
+  });
 }
 
 // ===================== SLASH COMMAND REGISTRATION =====================
@@ -1540,7 +1696,14 @@ const commands = [
   new SlashCommandBuilder()
     .setName("ot")
     .setDescription(toSmallCaps("farm ot paneli sistemi"))
-    .addSubcommand((s) => s.setName("panel").setDescription(toSmallCaps("ot teslimat panelini gönderir"))),
+    .addSubcommand((s) => s.setName("panel").setDescription(toSmallCaps("ot teslimat panelini gönderir")))
+    .addSubcommand((s) => s.setName("durum").setDescription(toSmallCaps("ot panelinin durumunu değiştirir")).addStringOption((o) => o.setName("durum").setDescription("Durum").setRequired(true).addChoices({ name: "Aktif", value: "acik" }, { name: "Kapalı", value: "kapali" }))),
+
+  new SlashCommandBuilder()
+    .setName("durumot")
+    .setDescription(toSmallCaps("ot panelinin durumunu (aktif/kapalı) değiştirir"))
+    .addStringOption((o) => o.setName("durum").setDescription("Durum seçin").setRequired(true)
+      .addChoices({ name: "Aktif", value: "acik" }, { name: "Kapalı", value: "kapali" })),
 
   new SlashCommandBuilder()
     .setName("ot-list")
@@ -1591,8 +1754,11 @@ async function registerCommands() {
   const rest = new REST({ version: "10" }).setToken(TOKEN);
   try {
     if (GUILD_ID) {
+      // Globaldeki eski kalıntı komutları temizle
+      await rest.put(Routes.applicationCommands(CLIENT_ID), { body: [] }).catch(() => {});
+      // Sunucuya güncel temiz komut listesini kaydet
       await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
-      console.log("✅ Slash komutlar sunucuya kaydedildi.");
+      console.log("✅ Slash komutlar sunucuya kaydedildi (eski global komutlar temizlendi).");
     } else {
       await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
       console.log("✅ Slash komutlar global kaydedildi.");
@@ -1658,6 +1824,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
 
       if (interaction.customId === "ot_teslim_open") {
+        if (!isOtOpen()) {
+          return replyE(interaction, createEmbed(interaction.guild, {
+            title: line(EMOJI.basarisiz, "ot teslimatı kapalı"),
+            description: line(EMOJI.sebep, "ot teslimatları şu an kapalı durumdadır.")
+          }), true);
+        }
+
         const modal = new ModalBuilder()
           .setCustomId("ot_teslim_modal")
           .setTitle(toSmallCaps("ot teslim formu"));
@@ -1782,8 +1955,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (sub === "durum") {
         config.ticketDurum = interaction.options.getString("durum"); saveConfig();
         await refreshTicketPanelMessage(guild);
-        return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarili, "durum güncellendi") }));
+        return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarili, "durum güncellendi"), description: line(EMOJI.sagok, `ticket paneli durumu **${config.ticketDurum === "acik" ? "AKTİF" : "KAPALI"}** olarak güncellendi.`) }));
       }
+    }
+
+    if (commandName === "durumot") {
+      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
+      const durum = interaction.options.getString("durum");
+      config.otDurum = durum;
+      saveConfig();
+      await refreshOtPanelMessage(guild);
+      return replyE(interaction, createEmbed(guild, {
+        title: line(EMOJI.basarili, "ot paneli durumu güncellendi"),
+        description: line(EMOJI.sagok, `ot paneli durumu **${durum === "acik" ? "AKTİF" : "KAPALI"}** olarak ayarlandı.`)
+      }), true);
     }
 
     if (commandName === "aktiflik") {
@@ -1849,8 +2034,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
 
       if (sub === "panel") {
-        await interaction.channel.send({ embeds: [otPanelEmbed(guild)], components: [otPanelRow()] });
+        const panelMsg = await interaction.channel.send({ embeds: [otPanelEmbed(guild)], components: [otPanelRow()] });
+        if (panelMsg) {
+          config.otPanelChannelId = panelMsg.channel.id;
+          config.otPanelMessageId = panelMsg.id;
+          saveConfig();
+        }
         return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarili, "ot paneli gönderildi") }), true);
+      }
+      if (sub === "durum") {
+        const durum = interaction.options.getString("durum");
+        config.otDurum = durum;
+        saveConfig();
+        await refreshOtPanelMessage(guild);
+        return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarili, "ot paneli durumu güncellendi"), description: line(EMOJI.sagok, `ot paneli durumu **${durum === "acik" ? "AKTİF" : "KAPALI"}** olarak ayarlandı.`) }), true);
       }
     }
 
@@ -1885,13 +2082,57 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return handleIdSorgu(interaction);
     }
 
+    if (commandName === "tag") {
+      const search = interaction.options.getString("arama").trim();
+      await interaction.deferReply();
+      try {
+        const json = await getServerPlayersCached();
+        const players = json?.Data?.players || json?.players || [];
+        const matched = players.filter((p) => cleanFiveMName(p.name).includes(search.toLowerCase()));
+
+        if (!matched.length) {
+          return replyE(interaction, createEmbed(guild, {
+            title: line(EMOJI.basarisiz, "oyuncu bulunamadı"),
+            description: line(EMOJI.sebep, `"${search}" aramasına uygun oyuncu bulunamadı.`)
+          }));
+        }
+
+        const list = matched.slice(0, 25).map((p) => `${EMOJI.sagok} · **${p.name}** (ID: \`${p.id}\` | Ping: \`${p.ping}ms\`)`).join("\n");
+
+        return interaction.editReply({
+          embeds: [createEmbed(guild, {
+            title: `${EMOJI.fivem} · ${toSmallCaps("tag arama sonucu")}`,
+            description: `**Toplam Bulunan:** \`${matched.length} Kişi\`\n\n${list}`
+          })]
+        });
+      } catch (err) {
+        return replyE(interaction, createEmbed(guild, {
+          title: line(EMOJI.basarisiz, "api hatası"),
+          description: line(EMOJI.sebep, err?.message || "FiveM API bağlantı hatası")
+        }));
+      }
+    }
+
+    if (commandName === "aktifekipler") {
+      await interaction.deferReply();
+      try {
+        const embed = await buildAktifEkiplerEmbed(guild);
+        return interaction.editReply({ embeds: [embed] });
+      } catch (err) {
+        return replyE(interaction, createEmbed(guild, {
+          title: line(EMOJI.basarisiz, "hata"),
+          description: line(EMOJI.sebep, "ekip listesi hesaplanırken hata oluştu.")
+        }));
+      }
+    }
+
     if (commandName === "ban") {
       const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.BanMembers);
       if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id) && !isAdmin) return noPerm(interaction);
       const user = interaction.options.getUser("kullanici");
       const reason = interaction.options.getString("sebep") || "Sebep belirtilmedi";
       await guild.members.ban(user.id, { reason }).catch(() => {});
-      return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarili, "üye banlandı"), description: `Kullanıcı: ${user}` }));
+      return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarili, "üye banlandı"), description: line(EMOJI.sagok, `kullanıcı ${user} yasaklandı.`) }));
     }
 
     if (commandName === "kick") {
@@ -1901,7 +2142,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const reason = interaction.options.getString("sebep") || "Sebep belirtilmedi";
       const member = await guild.members.fetch(user.id).catch(() => null);
       if (member) await member.kick(reason).catch(() => {});
-      return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarili, "üye atıldı"), description: `Kullanıcı: ${user}` }));
+      return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarili, "üye atıldı"), description: line(EMOJI.sagok, `kullanıcı ${user} atıldı.`) }));
     }
 
     if (commandName === "ses") {
@@ -1909,7 +2150,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const vc = interaction.member.voice.channel;
       if (!vc) return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarisiz, "ses kanalı yok") }), true);
       joinVoiceChannel({ channelId: vc.id, guildId: guild.id, adapterCreator: guild.voiceAdapterCreator, selfDeaf: true });
-      return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarili, "sese girildi"), description: `Kanal: ${vc}` }));
+      return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarili, "sese girildi"), description: line(EMOJI.sagok, `kanal: ${vc}`) }));
     }
 
     if (commandName === "nuke") {
@@ -1953,7 +2194,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 // ===================== PRESENCE & READY =====================
 function setBotPresence() {
   if (!client.user) return;
-  client.user.setPresence({ activities: [{ name: "Chapo 🤍 Assistant", type: ActivityType.Playing }], status: "dnd" });
+  client.user.setPresence({ activities: [{ name: "UpStar 🤍 Assistant", type: ActivityType.Playing }], status: "dnd" });
 }
 client.once(Events.ClientReady, () => {
   console.log(`🟢 Bot aktif: ${client.user.tag}`);
@@ -1973,7 +2214,7 @@ client.once(Events.ClientReady, () => {
   await pullFromMongo("events.json", EVENTS_FILE);
   await pullFromMongo("activity.json", ACTIVITY_FILE);
 
-  config = loadJSON(CONFIG_FILE, { logChannelId: null, ticketCategoryId: null, ticketStaffRoleId: null, ekipRoleId: null, newRoleId: null, ticketDurum: "acik", ticketPanelChannelId: null, ticketPanelMessageId: null, aktiflikLogChannelId: null, logs: {} });
+  config = loadJSON(CONFIG_FILE, { logChannelId: null, ticketCategoryId: null, ticketStaffRoleId: null, ekipRoleId: null, newRoleId: null, ticketDurum: "acik", ticketPanelChannelId: null, ticketPanelMessageId: null, otDurum: "acik", otPanelChannelId: null, otPanelMessageId: null, aktiflikLogChannelId: null, logs: {} });
   aktiflikLogChannelId = config.aktiflikLogChannelId || null;
   guardConfig = loadJSON(GUARD_FILE, { enabled: true, systems: { ban: true, kick: true, channel: true, role: true }, limits: { ban: 2, kick: 3, channel: 1, role: 2 }, windowMinutes: 10 });
   whitelist = new Set(loadJSON(WHITELIST_FILE, []));
