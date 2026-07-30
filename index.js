@@ -256,7 +256,15 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await _fetch(url, { ...options, signal: controller.signal });
+    return await _fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        ...(options.headers || {})
+      }
+    });
   } finally {
     clearTimeout(timer);
   }
@@ -266,49 +274,74 @@ function cleanFiveMName(name = "") {
   return String(name).replace(/\^\d/g, "").toLowerCase();
 }
 
-async function getServerPlayersCached() {
+// ---- DİREKT SUNUCU SORGUSU (identifiers için, cfx-services.net identifiers'ı gizliyor) ----
+let lastDirectFetchAt = 0;
+let cachedDirectPlayers = null;
+
+async function getDirectPlayersData(connectEndPoints) {
   const now = Date.now();
-  if (cachedPlayersJson && now - lastPlayersFetchAt < 15000) return cachedPlayersJson;
+  if (cachedDirectPlayers && now - lastDirectFetchAt < 30000) return cachedDirectPlayers;
+  if (!Array.isArray(connectEndPoints) || !connectEndPoints.length) return null;
 
-  const url = `https://frontend.cfx-services.net/api/servers/single/${CFX_CODE}`;
-  const res = await fetchWithTimeout(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, 6000);
-  if (!res.ok) throw new Error(`CFX API HTTP ${res.status}`);
-
-  const json = await res.json();
-  const cfxPlayers = json?.Data?.players || [];
-  const connectEndPoints = json?.Data?.connectEndPoints || [];
-
-  let directPlayersMap = new Map();
-
-  if (Array.isArray(connectEndPoints) && connectEndPoints.length > 0) {
-    for (const ep of connectEndPoints) {
-      const cleanEp = ep.replace(/^https?:\/\//, "");
-      const directUrls = [`http://${cleanEp}/players.json`, `https://${cleanEp}/players.json`];
-      for (const dUrl of directUrls) {
-        try {
-          const dRes = await fetchWithTimeout(dUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }, 4000);
-          if (dRes.ok) {
-            const dList = await dRes.json();
-            if (Array.isArray(dList)) {
-              dList.forEach((p) => {
-                if (p && p.id !== undefined) directPlayersMap.set(String(p.id), p);
-              });
-              break;
-            }
-          }
-        } catch {}
+  for (const endpoint of connectEndPoints) {
+    try {
+      const url = `http://${endpoint}/players.json`;
+      const res = await fetchWithTimeout(url, {}, 4000);
+      if (!res.ok) continue;
+      const json = await res.json();
+      if (Array.isArray(json)) {
+        cachedDirectPlayers = json;
+        lastDirectFetchAt = now;
+        return json;
       }
-      if (directPlayersMap.size > 0) break;
+    } catch {
+      // bu endpoint çalışmadı, sıradakini dene
     }
   }
+  return null;
+}
 
-  // Merge direct players.json identifiers into cfxPlayers
-  cfxPlayers.forEach((p) => {
-    const directP = directPlayersMap.get(String(p.id));
-    if (directP && Array.isArray(directP.identifiers) && directP.identifiers.length > 0) {
-      p.identifiers = directP.identifiers;
+// cfx-services.net'in Data.players'ı ile direkt players.json'u id/isim üzerinden birleştirir,
+// böylece identifiers (steam/discord) bilgisi elde edilmiş olur.
+function mergeIdentifiers(frontendPlayers, directPlayers) {
+  if (!Array.isArray(directPlayers) || !directPlayers.length) return frontendPlayers;
+
+  const byId = new Map();
+  for (const dp of directPlayers) {
+    if (dp && dp.id !== undefined) byId.set(String(dp.id), dp);
+  }
+
+  return frontendPlayers.map((p) => {
+    if (Array.isArray(p.identifiers) && p.identifiers.length) return p;
+    const match = byId.get(String(p.id));
+    if (match && Array.isArray(match.identifiers) && match.identifiers.length) {
+      return { ...p, identifiers: match.identifiers };
     }
+    return p;
   });
+}
+
+async function getServerPlayersCached() {
+  const now = Date.now();
+  if (cachedPlayersJson && now - lastPlayersFetchAt < 30000) return cachedPlayersJson;
+
+  const url = `https://frontend.cfx-services.net/api/servers/single/${CFX_CODE}`;
+  const res = await fetchWithTimeout(url, {}, 6000);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const json = await res.json();
+
+  // frontend API artık identifiers'ı boş dönüyor -> sunucuya direkt sorup birleştiriyoruz
+  if (json?.Data?.players?.length) {
+    try {
+      const direct = await getDirectPlayersData(json.Data.connectEndPoints);
+      if (direct) {
+        json.Data.players = mergeIdentifiers(json.Data.players, direct);
+      }
+    } catch {
+      // direkt sorgu başarısız olursa frontend verisiyle devam
+    }
+  }
 
   cachedPlayersJson = json;
   lastPlayersFetchAt = now;
@@ -328,8 +361,7 @@ async function getPlayerFromCFX(playerId) {
     name: p.name,
     ping: p.ping,
     steam: ids.find((i) => i.startsWith("steam:")) || "Yok",
-    discord: ids.find((i) => i.startsWith("discord:"))?.replace("discord:", "") || "Yok",
-    license: ids.find((i) => i.startsWith("license:")) || "Yok"
+    discord: ids.find((i) => i.startsWith("discord:"))?.replace("discord:", "") || "Yok"
   };
 }
 
@@ -1539,6 +1571,13 @@ async function handleIdSorgu(interaction) {
     }
 
     if (!p) {
+      const anyIdentifiers = players.some((x) => Array.isArray(x.identifiers) && x.identifiers.length);
+      if ((option === "steam" || option === "discord") && !anyIdentifiers) {
+        return replyE(interaction, createEmbed(interaction.guild, {
+          title: line(EMOJI.basarisiz, "kimlik verisi alınamadı"),
+          description: line(EMOJI.sebep, "sunucudan steam/discord kimlik bilgileri şu an çekilemiyor (sunucu endpointi kapalı olabilir). ID ile aramayı deneyin.")
+        }), false);
+      }
       return replyE(interaction, createEmbed(interaction.guild, {
         title: line(EMOJI.basarisiz, "oyuncu bulunamadı"),
         description: line(EMOJI.sebep, `seçtiğiniz kriterle (${option}: ${value}) eşleşen oyuncu bulunamadı.`)
