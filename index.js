@@ -274,53 +274,6 @@ function cleanFiveMName(name = "") {
   return String(name).replace(/\^\d/g, "").toLowerCase();
 }
 
-// ---- DİREKT SUNUCU SORGUSU (identifiers için, cfx-services.net identifiers'ı gizliyor) ----
-let lastDirectFetchAt = 0;
-let cachedDirectPlayers = null;
-
-async function getDirectPlayersData(connectEndPoints) {
-  const now = Date.now();
-  if (cachedDirectPlayers && now - lastDirectFetchAt < 30000) return cachedDirectPlayers;
-  if (!Array.isArray(connectEndPoints) || !connectEndPoints.length) return null;
-
-  for (const endpoint of connectEndPoints) {
-    try {
-      const url = `http://${endpoint}/players.json`;
-      const res = await fetchWithTimeout(url, {}, 4000);
-      if (!res.ok) continue;
-      const json = await res.json();
-      if (Array.isArray(json)) {
-        cachedDirectPlayers = json;
-        lastDirectFetchAt = now;
-        return json;
-      }
-    } catch {
-      // bu endpoint çalışmadı, sıradakini dene
-    }
-  }
-  return null;
-}
-
-// cfx-services.net'in Data.players'ı ile direkt players.json'u id/isim üzerinden birleştirir,
-// böylece identifiers (steam/discord) bilgisi elde edilmiş olur.
-function mergeIdentifiers(frontendPlayers, directPlayers) {
-  if (!Array.isArray(directPlayers) || !directPlayers.length) return frontendPlayers;
-
-  const byId = new Map();
-  for (const dp of directPlayers) {
-    if (dp && dp.id !== undefined) byId.set(String(dp.id), dp);
-  }
-
-  return frontendPlayers.map((p) => {
-    if (Array.isArray(p.identifiers) && p.identifiers.length) return p;
-    const match = byId.get(String(p.id));
-    if (match && Array.isArray(match.identifiers) && match.identifiers.length) {
-      return { ...p, identifiers: match.identifiers };
-    }
-    return p;
-  });
-}
-
 async function getServerPlayersCached() {
   const now = Date.now();
   if (cachedPlayersJson && now - lastPlayersFetchAt < 30000) return cachedPlayersJson;
@@ -330,19 +283,6 @@ async function getServerPlayersCached() {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
   const json = await res.json();
-
-  // frontend API artık identifiers'ı boş dönüyor -> sunucuya direkt sorup birleştiriyoruz
-  if (json?.Data?.players?.length) {
-    try {
-      const direct = await getDirectPlayersData(json.Data.connectEndPoints);
-      if (direct) {
-        json.Data.players = mergeIdentifiers(json.Data.players, direct);
-      }
-    } catch {
-      // direkt sorgu başarısız olursa frontend verisiyle devam
-    }
-  }
-
   cachedPlayersJson = json;
   lastPlayersFetchAt = now;
   return json;
