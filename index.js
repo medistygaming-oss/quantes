@@ -77,8 +77,8 @@ const isGuardCommandUser = (id) => id === GUARD_MASTER_ID;
 const DEFAULT_IMAGE_URL = "https://media.discordapp.net/attachments/1525920078720143551/1531761971769380914/ChatGPT_Image_28_Tem_2026_23_33_51.png";
 const BOT_IMAGE_URL = (process.env.BOT_IMAGE_URL || "").trim() || DEFAULT_IMAGE_URL;
 const TICKET_BANNER_URL = (process.env.TICKET_BANNER_URL || "").trim() || BOT_IMAGE_URL;
-const PANEL_AUTHOR = (process.env.PANEL_AUTHOR || "UpStar Assistant").trim();
-const FOOTER_TEXT = (process.env.FOOTER_TEXT || "Developed by UpStar").trim();
+const PANEL_AUTHOR = (process.env.PANEL_AUTHOR || "Chapo Assistant").trim();
+const FOOTER_TEXT = (process.env.FOOTER_TEXT || "Developed by Vazgucxn").trim();
 const CFX_CODE = (process.env.CFX_CODE || "8emv3b3").trim();
 
 const NAVY = 0x0b1a3a;
@@ -1953,7 +1953,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 // ===================== PRESENCE & READY =====================
 function setBotPresence() {
   if (!client.user) return;
-  client.user.setPresence({ activities: [{ name: "UpStar 🤍 Assistant", type: ActivityType.Playing }], status: "dnd" });
+  client.user.setPresence({ activities: [{ name: "Chapo 🤍 Assistant", type: ActivityType.Playing }], status: "dnd" });
 }
 client.once(Events.ClientReady, () => {
   console.log(`🟢 Bot aktif: ${client.user.tag}`);
