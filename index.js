@@ -2094,7 +2094,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return handleVeritabaniSifirla(interaction);
     }
 
-    // ---- /id (ORİJİNAL KOD İLE BİREBİR AYNISI) ----
+    // ---- /id ----
     if (commandName === "id") {
       const playerId = interaction.options.getInteger("oyuncu_id");
 
@@ -2106,19 +2106,26 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!data.found) {
           return replyE(interaction, createEmbed(guild, {
             title: line(EMOJI.basarisiz, "oyuncu bulunamadı"),
-            description: line(EMOJI.sebep, "oyuncu bulunamadı.")
+            description: line(EMOJI.sebep, "bu id ile oynayan bir oyuncu bulunamadı.")
           }), false);
+        }
+
+        const fields = [
+          { name: line(EMOJI.data, "İsim"), value: `\`${data.name}\`` },
+          { name: line(EMOJI.kalem, "ID"), value: `\`${data.id}\``, inline: true },
+          { name: line(EMOJI.sagok, "Ping"), value: `\`${data.ping}\``, inline: true }
+        ];
+
+        if (data.steam && data.steam !== "Yok") {
+          fields.push({ name: line(EMOJI.steam, "Steam"), value: `\`${data.steam}\`` });
+        }
+        if (data.discord && data.discord !== "Yok") {
+          fields.push({ name: line(EMOJI.discord, "Discord"), value: `<@${data.discord}> \`(${data.discord})\`` });
         }
 
         return replyE(interaction, createEmbed(guild, {
           title: line(EMOJI.fivem, "fivem oyuncu"),
-          fields: [
-            { name: line(EMOJI.data, "İsim"), value: `\`${data.name}\`` },
-            { name: line(EMOJI.kalem, "ID"), value: `\`${data.id}\``, inline: true },
-            { name: line(EMOJI.sagok, "Ping"), value: `\`${data.ping}\``, inline: true },
-            { name: line(EMOJI.steam, "Steam"), value: `\`${data.steam}\`` },
-            { name: line(EMOJI.discord, "Discord"), value: `\`${data.discord}\`` }
-          ]
+          fields
         }), false);
       } catch (err) {
         console.error("ID CMD ERROR:", err);
@@ -2129,7 +2136,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // ---- /tag (ORİJİNAL KOD İLE BİREBİR AYNISI) ----
+    // ---- /tag ----
     if (commandName === "tag") {
       const search = interaction.options.getString("arama").trim();
       if (!search) {
@@ -2149,7 +2156,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!matched.length) {
           return replyE(interaction, createEmbed(guild, {
             title: line(EMOJI.basarisiz, "oyuncu bulunamadı"),
-            description: line(EMOJI.sebep, "oyuncu bulunamadı.")
+            description: line(EMOJI.sebep, "aradığınız isimle eşleşen oyuncu bulunamadı.")
           }), false);
         }
 
@@ -2176,7 +2183,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return handleIdSorgu(interaction);
     }
 
-    // ---- /aktifekipler (ORİJİNAL KOD İLE BİREBİR AYNISI) ----
+    // ---- /aktifekipler ----
     if (commandName === "aktifekipler") {
       await interaction.deferReply().catch(() => {});
       try {
