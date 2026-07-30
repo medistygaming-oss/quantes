@@ -1439,21 +1439,21 @@ const commands = [
     .addSubcommand((s) => s
       .setName("limit")
       .setDescription(toSmallCaps("guard limitini ayarlar"))
-      .addStringOption((o) => o.setName("sistem").setDescription("Sistem").setRequired(true)
+      .addStringOption((o) => o.setName("sistem").setDescription("Sistem seçin").setRequired(true)
         .addChoices({ name: "Ban", value: "ban" }, { name: "Kick", value: "kick" }, { name: "Kanal", value: "channel" }, { name: "Rol", value: "role" }))
-      .addIntegerOption((o) => o.setName("miktar").setDescription("Yeni limit").setRequired(true).setMinValue(0)))
+      .addIntegerOption((o) => o.setName("miktar").setDescription("Yeni limit miktarı").setRequired(true).setMinValue(0)))
     .addSubcommand((s) => s
       .setName("sistem")
       .setDescription(toSmallCaps("guard sistemini açar/kapatır"))
-      .addStringOption((o) => o.setName("sistem").setDescription("Sistem").setRequired(true)
+      .addStringOption((o) => o.setName("sistem").setDescription("Sistem seçin").setRequired(true)
         .addChoices({ name: "Ban", value: "ban" }, { name: "Kick", value: "kick" }, { name: "Kanal", value: "channel" }, { name: "Rol", value: "role" }))
-      .addBooleanOption((o) => o.setName("durum").setDescription("Açık mı?").setRequired(true)))
+      .addBooleanOption((o) => o.setName("durum").setDescription("Sistem açık mı kapalı mı?").setRequired(true)))
     .addSubcommand((s) => s
       .setName("whitelist")
       .setDescription(toSmallCaps("whitelist yönetimi"))
-      .addStringOption((o) => o.setName("islem").setDescription("İşlem").setRequired(true)
+      .addStringOption((o) => o.setName("islem").setDescription("Yapılacak işlem").setRequired(true)
         .addChoices({ name: "Ekle", value: "ekle" }, { name: "Kaldır", value: "kaldir" }, { name: "Liste", value: "liste" }))
-      .addUserOption((o) => o.setName("kullanici").setDescription("Kullanıcı"))),
+      .addUserOption((o) => o.setName("kullanici").setDescription("Hedef kullanıcı"))),
 
   new SlashCommandBuilder()
     .setName("setup")
@@ -1463,16 +1463,16 @@ const commands = [
   new SlashCommandBuilder()
     .setName("logkanal")
     .setDescription(toSmallCaps("guard alarmlarının düşeceği log kanalını ayarlar"))
-    .addChannelOption((o) => o.setName("kanal").setDescription("Kanal").setRequired(true).addChannelTypes(ChannelType.GuildText)),
+    .addChannelOption((o) => o.setName("kanal").setDescription("Log kanalı seçin").setRequired(true).addChannelTypes(ChannelType.GuildText)),
 
   new SlashCommandBuilder()
     .setName("ticket")
     .setDescription(toSmallCaps("başvuru sistemi yönetimi"))
-    .addSubcommand((s) => s.setName("kategori").setDescription(toSmallCaps("kategori ayarlar")).addChannelOption((o) => o.setName("kategori").setDescription("Kategori").setRequired(true).addChannelTypes(ChannelType.GuildCategory)))
-    .addSubcommand((s) => s.setName("panel").setDescription(toSmallCaps("başvuru panelini gönderir")).addRoleOption((o) => o.setName("yetkili_rol").setDescription("Yetkili rol").setRequired(true)))
-    .addSubcommand((s) => s.setName("ekiprol").setDescription(toSmallCaps("ekip rolünü ayarlar")).addRoleOption((o) => o.setName("rol").setDescription("Rol").setRequired(true)))
-    .addSubcommand((s) => s.setName("yenirol").setDescription(toSmallCaps("new rolünü ayarlar")).addRoleOption((o) => o.setName("rol").setDescription("Rol").setRequired(true)))
-    .addSubcommand((s) => s.setName("durum").setDescription(toSmallCaps("durumu değiştirir")).addStringOption((o) => o.setName("durum").setDescription("Durum").setRequired(true).addChoices({ name: "Aktif", value: "acik" }, { name: "Kapalı", value: "kapali" }))),
+    .addSubcommand((s) => s.setName("kategori").setDescription(toSmallCaps("kategori ayarlar")).addChannelOption((o) => o.setName("kategori").setDescription("Hedef kategori").setRequired(true).addChannelTypes(ChannelType.GuildCategory)))
+    .addSubcommand((s) => s.setName("panel").setDescription(toSmallCaps("başvuru panelini gönderir")).addRoleOption((o) => o.setName("yetkili_rol").setDescription("Yetkili rolü seçin").setRequired(true)))
+    .addSubcommand((s) => s.setName("ekiprol").setDescription(toSmallCaps("ekip rolünü ayarlar")).addRoleOption((o) => o.setName("rol").setDescription("Verilecek ekip rolü").setRequired(true)))
+    .addSubcommand((s) => s.setName("yenirol").setDescription(toSmallCaps("new rolünü ayarlar")).addRoleOption((o) => o.setName("rol").setDescription("Verilecek yeni rol").setRequired(true)))
+    .addSubcommand((s) => s.setName("durum").setDescription(toSmallCaps("durumu değiştirir")).addStringOption((o) => o.setName("durum").setDescription("Başvuru durumu").setRequired(true).addChoices({ name: "Aktif", value: "acik" }, { name: "Kapalı", value: "kapali" }))),
 
   new SlashCommandBuilder()
     .setName("ban")
@@ -1507,31 +1507,31 @@ const commands = [
     .addSubcommand((s) => s
       .setName("olustur")
       .setDescription(toSmallCaps("yeni kadro paneli açar"))
-      .addStringOption((o) => o.setName("baslik").setDescription("Başlık").setRequired(true))
-      .addIntegerOption((o) => o.setName("limit").setDescription("Limit").setRequired(true).setMinValue(1))
-      .addStringOption((o) => o.setName("sure").setDescription("Süre")))
+      .addStringOption((o) => o.setName("baslik").setDescription("Panel başlığı").setRequired(true))
+      .addIntegerOption((o) => o.setName("limit").setDescription("Maksimum kişi limiti").setRequired(true).setMinValue(1))
+      .addStringOption((o) => o.setName("sure").setDescription("Panel geçerlilik süresi")))
     .addSubcommand((s) => s.setName("iptal").setDescription(toSmallCaps("kadro panelini iptal eder"))),
 
   new SlashCommandBuilder()
     .setName("yetkili")
     .setDescription(toSmallCaps("yetkili listesini yönetir"))
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
-    .addSubcommand((s) => s.setName("ekle").setDescription("Ekle").addUserOption((o) => o.setName("kullanici").setRequired(true)))
-    .addSubcommand((s) => s.setName("kaldir").setDescription("Kaldır").addUserOption((o) => o.setName("kullanici").setRequired(true)))
-    .addSubcommand((s) => s.setName("liste").setDescription("Liste")),
+    .addSubcommand((s) => s.setName("ekle").setDescription("Yetkili ekler").addUserOption((o) => o.setName("kullanici").setDescription("Eklenecek kullanıcı").setRequired(true)))
+    .addSubcommand((s) => s.setName("kaldir").setDescription("Yetkili kaldırır").addUserOption((o) => o.setName("kullanici").setDescription("Kaldırılacak kullanıcı").setRequired(true)))
+    .addSubcommand((s) => s.setName("liste").setDescription("Yetkili listesini gösterir")),
 
   new SlashCommandBuilder()
     .setName("aktiflik")
     .setDescription(toSmallCaps("aktiflik testi yönetimi"))
-    .addSubcommand((s) => s.setName("baslat").setDescription(toSmallCaps("aktiflik testi başlatır")).addRoleOption((o) => o.setName("rol").setRequired(true)).addStringOption((o) => o.setName("sure").setRequired(true)))
-    .addSubcommand((s) => s.setName("log").setDescription(toSmallCaps("log kanalını ayarlar")).addChannelOption((o) => o.setName("kanal").setRequired(true).addChannelTypes(ChannelType.GuildText))),
+    .addSubcommand((s) => s.setName("baslat").setDescription(toSmallCaps("aktiflik testi başlatır")).addRoleOption((o) => o.setName("rol").setDescription("Test yapılacak rol").setRequired(true)).addStringOption((o) => o.setName("sure").setDescription("Test süresi (ör: 30dk, 2sa, 3g)").setRequired(true)))
+    .addSubcommand((s) => s.setName("log").setDescription(toSmallCaps("log kanalını ayarlar")).addChannelOption((o) => o.setName("kanal").setDescription("Katılmayanlar log kanalı").setRequired(true).addChannelTypes(ChannelType.GuildText))),
 
   new SlashCommandBuilder()
     .setName("banaffi")
     .setDescription(toSmallCaps("ban affı sistemi yönetimi"))
     .addSubcommand((s) => s.setName("panel").setDescription(toSmallCaps("ban affı başvuru panelini gönderir")))
     .addSubcommand((s) => s.setName("sifirla").setDescription(toSmallCaps("tüm ban affı kayıtlarını sıfırlar")))
-    .addSubcommand((s) => s.setName("sil").setDescription(toSmallCaps("belirli bir üyenin ban kaydını siler")).addUserOption((o) => o.setName("kullanici").setRequired(true))),
+    .addSubcommand((s) => s.setName("sil").setDescription(toSmallCaps("belirli bir üyenin ban kaydını siler")).addUserOption((o) => o.setName("kullanici").setDescription("Kaydı silinecek kullanıcı").setRequired(true))),
 
   new SlashCommandBuilder()
     .setName("ban-list")
@@ -1580,7 +1580,7 @@ const commands = [
   new SlashCommandBuilder()
     .setName("tag")
     .setDescription(toSmallCaps("fivem sunucusunda tag araması yapar"))
-    .addStringOption((o) => o.setName("arama").setDescription("İsim").setRequired(true)),
+    .addStringOption((o) => o.setName("arama").setDescription("Aranacak isim parçası").setRequired(true)),
 
   new SlashCommandBuilder()
     .setName("aktifekipler")
