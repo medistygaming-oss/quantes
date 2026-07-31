@@ -68,8 +68,38 @@ const OWNER_IDS = (process.env.OWNER_IDS || "827905938923978823,1129811807570247
 const isOwner = (id) => OWNER_IDS.includes(id);
 
 const ENV_STAFF_IDS = (process.env.STAFF_IDS || "").split(",").map((x) => x.trim()).filter(Boolean);
-let staffIds;
-const isStaff = (id) => isOwner(id) || (staffIds && staffIds.has(id));
+let staffIds, staffRoles;
+
+function isStaff(target) {
+  if (!target) return false;
+
+  let userId = null;
+  let member = null;
+
+  if (typeof target === "string") {
+    userId = target;
+  } else if (target.user) {
+    userId = target.user.id;
+    member = target.member || (target.roles ? target : null);
+  } else if (target.id) {
+    userId = target.id;
+    if (target.roles) member = target;
+  }
+
+  if (userId) {
+    if (isOwner(userId)) return true;
+    if (staffIds && staffIds.has(userId)) return true;
+    if (staffRoles && staffRoles.has(userId)) return true;
+  }
+
+  if (member && member.roles && member.roles.cache && staffRoles) {
+    for (const roleId of staffRoles) {
+      if (member.roles.cache.has(roleId)) return true;
+    }
+  }
+
+  return false;
+}
 
 const GUARD_MASTER_ID = "827905938923978823";
 const isGuardCommandUser = (id) => id === GUARD_MASTER_ID;
@@ -186,6 +216,7 @@ const CONFIG_FILE = path.join(DATA_DIR, "config.json");
 const GUARD_FILE = path.join(DATA_DIR, "guard.json");
 const WHITELIST_FILE = path.join(DATA_DIR, "whitelist.json");
 const STAFF_FILE = path.join(DATA_DIR, "staff.json");
+const STAFF_ROLES_FILE = path.join(DATA_DIR, "staff_roles.json");
 const BANS_FILE = path.join(DATA_DIR, "bans.json");
 const FARM_FILE = path.join(DATA_DIR, "farm.json");
 const EVENTS_FILE = path.join(DATA_DIR, "events.json");
@@ -373,6 +404,7 @@ function isGuardOwner(id) {
 function saveGuard() { saveJSON(GUARD_FILE, guardConfig); }
 function saveWhitelist() { saveJSON(WHITELIST_FILE, Array.from(whitelist)); }
 function saveStaff() { saveJSON(STAFF_FILE, Array.from(staffIds)); }
+function saveStaffRoles() { saveJSON(STAFF_ROLES_FILE, Array.from(staffRoles)); }
 function saveConfig() { saveJSON(CONFIG_FILE, config); }
 
 function getCounterBucket(guildId) {
@@ -664,7 +696,7 @@ async function handleTicketOpen(interaction) {
 async function handleBasvuruKarar(interaction, kabul) {
   const guild = interaction.guild;
   const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
-  if (!isStaff(interaction.user.id) && !isAdmin) return noPerm(interaction);
+  if (!isStaff(interaction) && !isAdmin) return noPerm(interaction);
 
   await interaction.deferReply({ flags: 64 });
 
@@ -722,7 +754,7 @@ async function handleTicketClose(interaction) {
   await interaction.deferReply({ flags: 64 });
   const opener = ticketOwners.get(interaction.channel.id);
   const admin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
-  if (interaction.user.id !== opener && !admin && !isStaff(interaction.user.id)) {
+  if (interaction.user.id !== opener && !admin && !isStaff(interaction)) {
     return replyE(interaction, createEmbed(interaction.guild, {
       title: line(EMOJI.basarisiz, "yetki yok"),
       description: line(EMOJI.sebep, "bu kanalı kapatma yetkin yok.")
@@ -848,7 +880,7 @@ async function handleAktiflikJoin(interaction) {
 
 async function handleAktiflikCancel(interaction) {
   const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
-  if (!isStaff(interaction.user.id) && !isAdmin) return noPerm(interaction);
+  if (!isStaff(interaction) && !isAdmin) return noPerm(interaction);
 
   await interaction.deferReply({ flags: 64 });
   const msgId = interaction.message.id;
@@ -864,7 +896,7 @@ async function handleAktiflikCancel(interaction) {
 
 async function handleAktiflikKick(interaction) {
   const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
-  if (!isStaff(interaction.user.id) && !isAdmin) return noPerm(interaction);
+  if (!isStaff(interaction) && !isAdmin) return noPerm(interaction);
 
   await interaction.deferReply({ flags: 64 });
   const parts = interaction.customId.replace("aktiflik_kick_", "").split("_");
@@ -1088,7 +1120,7 @@ async function handleOtApprovalSelect(interaction) {
   const delivery = pendingOtDeliveries.get(deliveryId);
 
   const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
-  if (!isStaff(interaction.user.id) && !isAdmin) return noPerm(interaction);
+  if (!isStaff(interaction) && !isAdmin) return noPerm(interaction);
 
   await interaction.deferUpdate();
 
@@ -1426,7 +1458,7 @@ async function handleSesTopla(interaction) {
 // ===================== SYSTEM 8: VERİTABANI SIFIRLAMA SİSTEMİ =====================
 async function handleVeritabaniSifirla(interaction) {
   const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
-  if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id) && !isAdmin) return noPerm(interaction);
+  if (!isOwner(interaction.user.id) && !isStaff(interaction) && !isAdmin) return noPerm(interaction);
 
   const select = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
@@ -1685,8 +1717,12 @@ const commands = [
     .setName("yetkili")
     .setDescription(toSmallCaps("yetkili listesini yönetir"))
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
-    .addSubcommand((s) => s.setName("ekle").setDescription("Yetkili ekler").addUserOption((o) => o.setName("kullanici").setDescription("Eklenecek kullanıcı").setRequired(true)))
-    .addSubcommand((s) => s.setName("kaldir").setDescription("Yetkili kaldırır").addUserOption((o) => o.setName("kullanici").setDescription("Kaldırılacak kullanıcı").setRequired(true)))
+    .addSubcommand((s) => s.setName("ekle").setDescription("Yetkili kullanıcı veya rol ekler")
+      .addUserOption((o) => o.setName("kullanici").setDescription("Eklenecek kullanıcı"))
+      .addRoleOption((o) => o.setName("rol").setDescription("Eklenecek yetkili rolü")))
+    .addSubcommand((s) => s.setName("kaldir").setDescription("Yetkili kullanıcı veya rol kaldırır")
+      .addUserOption((o) => o.setName("kullanici").setDescription("Kaldırılacak kullanıcı"))
+      .addRoleOption((o) => o.setName("rol").setDescription("Kaldırılacak yetkili rolü")))
     .addSubcommand((s) => s.setName("liste").setDescription("Yetkili listesini gösterir")),
 
   new SlashCommandBuilder()
@@ -1924,8 +1960,86 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
+    if (commandName === "yetkili") {
+      const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
+      if (!isOwner(interaction.user.id) && !isAdmin) return noPerm(interaction);
+
+      const sub = interaction.options.getSubcommand();
+      const targetUser = interaction.options.getUser("kullanici");
+      const targetRole = interaction.options.getRole("rol");
+
+      if (sub === "ekle") {
+        if (!targetUser && !targetRole) {
+          return replyE(interaction, createEmbed(guild, {
+            title: line(EMOJI.basarisiz, "eksik parametre"),
+            description: line(EMOJI.sebep, "lütfen eklenecek bir kullanıcı veya rol seçiniz.")
+          }), true);
+        }
+
+        const added = [];
+        if (targetUser) {
+          staffIds.add(targetUser.id);
+          saveStaff();
+          added.push(`Kullanıcı: ${targetUser}`);
+        }
+        if (targetRole) {
+          staffRoles.add(targetRole.id);
+          saveStaffRoles();
+          added.push(`Rol: ${targetRole}`);
+        }
+
+        return replyE(interaction, createEmbed(guild, {
+          title: line(EMOJI.basarili, "yetkili eklendi"),
+          description: line(EMOJI.sagok, `başarıyla eklendi:\n${added.join("\n")}`)
+        }));
+      }
+
+      if (sub === "kaldir") {
+        if (!targetUser && !targetRole) {
+          return replyE(interaction, createEmbed(guild, {
+            title: line(EMOJI.basarisiz, "eksik parametre"),
+            description: line(EMOJI.sebep, "lütfen kaldırılacak bir kullanıcı veya rol seçiniz.")
+          }), true);
+        }
+
+        const removed = [];
+        if (targetUser) {
+          staffIds.delete(targetUser.id);
+          saveStaff();
+          removed.push(`Kullanıcı: ${targetUser}`);
+        }
+        if (targetRole) {
+          staffRoles.delete(targetRole.id);
+          saveStaffRoles();
+          removed.push(`Rol: ${targetRole}`);
+        }
+
+        return replyE(interaction, createEmbed(guild, {
+          title: line(EMOJI.basarili, "yetkili kaldırıldı"),
+          description: line(EMOJI.sagok, `başarıyla kaldırıldı:\n${removed.join("\n")}`)
+        }));
+      }
+
+      if (sub === "liste") {
+        const userList = staffIds.size
+          ? Array.from(staffIds).map((id, i) => `**${i + 1}.** <@${id}>`).join("\n")
+          : "Yetkili kullanıcı yok.";
+        const roleList = staffRoles.size
+          ? Array.from(staffRoles).map((id, i) => `**${i + 1}.** <@&${id}>`).join("\n")
+          : "Yetkili rol yok.";
+
+        return replyE(interaction, createEmbed(guild, {
+          title: line(EMOJI.moryildiz, "yetkili listesi"),
+          fields: [
+            { name: line(EMOJI.data, `Yetkili Rolleri (${staffRoles.size})`), value: roleList },
+            { name: line(EMOJI.kalem, `Yetkili Kullanıcıları (${staffIds.size})`), value: userList }
+          ]
+        }));
+      }
+    }
+
     if (commandName === "setup") {
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction)) return noPerm(interaction);
       await interaction.deferReply();
       const category = await guild.channels.create({ name: "📂・ᴍᴏᴅᴇʀᴀsʏᴏɴ-ʟᴏɢs", type: ChannelType.GuildCategory });
       const logs = [
@@ -1947,14 +2061,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     if (commandName === "logkanal") {
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction)) return noPerm(interaction);
       const ch = interaction.options.getChannel("kanal");
       config.logChannelId = ch.id; saveConfig();
       return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarili, "log kanalı ayarlandı"), description: `Kanal: ${ch}` }));
     }
 
     if (commandName === "ticket") {
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction)) return noPerm(interaction);
       const sub = interaction.options.getSubcommand();
       if (sub === "kategori") {
         const cat = interaction.options.getChannel("kategori");
@@ -1976,7 +2090,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     if (commandName === "durumot") {
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction)) return noPerm(interaction);
       const durum = interaction.options.getString("durum");
       config.otDurum = durum;
       saveConfig();
@@ -1990,7 +2104,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (commandName === "aktiflik") {
       const sub = interaction.options.getSubcommand();
       if (sub === "baslat") {
-        if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
+        if (!isOwner(interaction.user.id) && !isStaff(interaction)) return noPerm(interaction);
         const role = interaction.options.getRole("rol");
         const sureText = interaction.options.getString("sure");
         const durationMs = parseDurationToMs(sureText);
@@ -2022,7 +2136,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (commandName === "banaffi") {
       const sub = interaction.options.getSubcommand();
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction)) return noPerm(interaction);
 
       if (sub === "panel") {
         await interaction.channel.send({ embeds: [banAffiPanelEmbed(guild)], components: [banAffiPanelRow()] });
@@ -2047,7 +2161,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (commandName === "ot") {
       const sub = interaction.options.getSubcommand();
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction)) return noPerm(interaction);
 
       if (sub === "panel") {
         const panelMsg = await interaction.channel.send({ embeds: [otPanelEmbed(guild)], components: [otPanelRow()] });
@@ -2073,7 +2187,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     if (commandName === "dmduyuru") {
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction)) return noPerm(interaction);
       return handleDmDuyuru(interaction);
     }
 
@@ -2086,7 +2200,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     if (commandName === "ses-topla") {
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction)) return noPerm(interaction);
       return handleSesTopla(interaction);
     }
 
@@ -2094,7 +2208,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return handleVeritabaniSifirla(interaction);
     }
 
-    // ---- /id ----
+    // ---- /id (HERKESE AÇIK) ----
     if (commandName === "id") {
       const playerId = interaction.options.getInteger("oyuncu_id");
 
@@ -2136,7 +2250,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // ---- /tag ----
+    // ---- /tag (HERKESE AÇIK) ----
     if (commandName === "tag") {
       const search = interaction.options.getString("arama").trim();
       if (!search) {
@@ -2183,7 +2297,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return handleIdSorgu(interaction);
     }
 
-    // ---- /aktifekipler ----
+    // ---- /aktifekipler (HERKESE AÇIK) ----
     if (commandName === "aktifekipler") {
       await interaction.deferReply().catch(() => {});
       try {
@@ -2200,7 +2314,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (commandName === "ban") {
       const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.BanMembers);
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id) && !isAdmin) return noPerm(interaction);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction) && !isAdmin) return noPerm(interaction);
       const user = interaction.options.getUser("kullanici");
       const reason = interaction.options.getString("sebep") || "Sebep belirtilmedi";
       await guild.members.ban(user.id, { reason }).catch(() => {});
@@ -2209,7 +2323,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (commandName === "kick") {
       const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.KickMembers);
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id) && !isAdmin) return noPerm(interaction);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction) && !isAdmin) return noPerm(interaction);
       const user = interaction.options.getUser("kullanici");
       const reason = interaction.options.getString("sebep") || "Sebep belirtilmedi";
       const member = await guild.members.fetch(user.id).catch(() => null);
@@ -2218,7 +2332,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     if (commandName === "ses") {
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction)) return noPerm(interaction);
       const vc = interaction.member.voice.channel;
       if (!vc) return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarisiz, "ses kanalı yok") }), true);
       joinVoiceChannel({ channelId: vc.id, guildId: guild.id, adapterCreator: guild.voiceAdapterCreator, selfDeaf: true });
@@ -2227,7 +2341,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (commandName === "nuke") {
       const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels);
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id) && !isAdmin) return noPerm(interaction);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction) && !isAdmin) return noPerm(interaction);
       const oldCh = interaction.channel;
       const pos = oldCh.position;
       const newCh = await oldCh.clone().catch(() => null);
@@ -2240,7 +2354,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (commandName === "ingame") {
       const sub = interaction.options.getSubcommand();
-      if (!isOwner(interaction.user.id) && !isStaff(interaction.user.id)) return noPerm(interaction);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction)) return noPerm(interaction);
       if (sub === "olustur") {
         const title = interaction.options.getString("baslik");
         const limit = interaction.options.getInteger("limit");
@@ -2281,6 +2395,7 @@ client.once(Events.ClientReady, () => {
   await pullFromMongo("guard.json", GUARD_FILE);
   await pullFromMongo("whitelist.json", WHITELIST_FILE);
   await pullFromMongo("staff.json", STAFF_FILE);
+  await pullFromMongo("staff_roles.json", STAFF_ROLES_FILE);
   await pullFromMongo("bans.json", BANS_FILE);
   await pullFromMongo("farm.json", FARM_FILE);
   await pullFromMongo("events.json", EVENTS_FILE);
@@ -2291,6 +2406,7 @@ client.once(Events.ClientReady, () => {
   guardConfig = loadJSON(GUARD_FILE, { enabled: true, systems: { ban: true, kick: true, channel: true, role: true }, limits: { ban: 2, kick: 3, channel: 1, role: 2 }, windowMinutes: 10 });
   whitelist = new Set(loadJSON(WHITELIST_FILE, []));
   staffIds = new Set(loadJSON(STAFF_FILE, ENV_STAFF_IDS));
+  staffRoles = new Set(loadJSON(STAFF_ROLES_FILE, []));
   bansData = loadJSON(BANS_FILE, []);
   farmData = loadJSON(FARM_FILE, []);
   eventsData = loadJSON(EVENTS_FILE, []);
