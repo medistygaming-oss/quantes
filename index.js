@@ -373,7 +373,7 @@ function parseDurationToMs(text) {
 
   const dayMatch = t.match(/(\d+(?:\.\d+)?)\s*(g|gün|gun|d|day)\b/);
   const hourMatch = t.match(/(\d+(?:\.\d+)?)\s*(sa|saat|h|hr|hour)\b/);
-  const minMatch = t.match(/(\d+(?:\.\d+)?)\s*(dk|dak|dakika|m|min)\b/);
+  const minMatch = t.match(/(\d+(?:\.\d+)?)\s*(dk|dak|dakika|m|min|s)\b/);
 
   if (dayMatch) { totalMs += parseFloat(dayMatch[1]) * 86400000; matched = true; }
   if (hourMatch) { totalMs += parseFloat(hourMatch[1]) * 3600000; matched = true; }
@@ -388,7 +388,7 @@ function parseDurationToMs(text) {
 }
 
 function formatRemaining(ms) {
-  if (ms <= 0) return "Süre doldu";
+  if (ms <= 0) return "Süre Doldu / Bitti";
   const totalMin = Math.ceil(ms / 60000);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
@@ -1281,7 +1281,7 @@ async function handleIgSorgu(interaction) {
   await interaction.deferReply();
 
   const lastIngame = Array.from(ingameList.values()).pop();
-  const participantIds = lastIngame ? lastIngame.users : [];
+  const participantIds = lastIngame ? [...(lastIngame.mainUsers || []), ...(lastIngame.backupUsers || [])] : [];
 
   if (type === "oyun") {
     try {
@@ -1435,7 +1435,7 @@ async function handleSesTopla(interaction) {
 
   let count = 0;
   const lastIngame = Array.from(ingameList.values()).pop();
-  const ingameUserIds = lastIngame ? lastIngame.users : [];
+  const ingameUserIds = lastIngame ? [...(lastIngame.mainUsers || []), ...(lastIngame.backupUsers || [])] : [];
 
   const voiceChannels = interaction.guild.channels.cache.filter(c => c.isVoiceBased() && c.id !== targetChannel.id);
 
@@ -1579,7 +1579,112 @@ async function handleIdSorgu(interaction) {
   }
 }
 
-// ===================== AKTİF EKİPLER PARSER (ORİJİNAL KOD BİREBİR) =====================
+// ===================== ETKİNLİK / INGAME YARDIMCI SİSTEMİ =====================
+function ingameEmbed(guild, data) {
+  const mainCount = data.mainUsers.length;
+  const backupCount = data.backupUsers.length;
+
+  const isFull = mainCount >= data.mainLimit;
+
+  let statusText = "";
+  if (data.cancelled) {
+    statusText = "```diff\n- [ ETKİNLİK İPTAL EDİLDİ ] -\n```";
+  } else if (data.closed) {
+    statusText = "```diff\n- [ SÜRE DOLDU / BİTTİ ] -\n```";
+  } else if (isFull) {
+    statusText = `\`\`\`diff\n+ [ HEDEFE ULAŞILDI (${mainCount}/${data.mainLimit}) ] +\n\`\`\``;
+  } else {
+    statusText = `\`\`\`diff\n+ [ KADRO TOPLANIYOR (${mainCount}/${data.mainLimit}) ] +\n\`\`\``;
+  }
+
+  let remainingText = "Süre Doldu / Bitti";
+  if (!data.closed && !data.cancelled) {
+    if (data.endsAt) {
+      const remainingMs = data.endsAt - Date.now();
+      remainingText = remainingMs > 0 ? formatRemaining(remainingMs) : "Süre Doldu / Bitti";
+    } else {
+      remainingText = "Süresiz";
+    }
+  }
+
+  let mainListText = "";
+  if (mainCount === 0) {
+    mainListText = "*Henüz katılan yok.*";
+  } else {
+    data.mainUsers.forEach((id, idx) => {
+      mainListText += `**${idx + 1}.** <@${id}> \`${id}\`\n`;
+    });
+  }
+
+  let backupListText = "";
+  if (backupCount === 0) {
+    backupListText = "*Henüz yedek yok.*";
+  } else {
+    data.backupUsers.forEach((id, idx) => {
+      backupListText += `**Y${idx + 1}.** <@${id}> \`${id}\`\n`;
+    });
+  }
+
+  const description =
+    `${statusText}\n` +
+    `**sÜRE:** **${remainingText}**\n\n` +
+    `──────────────────────────────────\n\n` +
+    `***Katılımcılar***\n\n` +
+    `${mainListText}\n` +
+    `**~ YEDEK LER ~**\n` +
+    `${backupListText}`;
+
+  return createEmbed(guild, {
+    title: data.title,
+    description,
+    image: BOT_IMAGE_URL || undefined
+  });
+}
+
+function ingameRows(closed) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId("ingame_join").setLabel("Katıl").setStyle(ButtonStyle.Success).setEmoji(EMOJI.basarili).setDisabled(!!closed),
+    new ButtonBuilder().setCustomId("ingame_leave").setLabel("Ayrıl").setStyle(ButtonStyle.Danger).setEmoji(EMOJI.basarisiz).setDisabled(!!closed),
+    new ButtonBuilder().setCustomId("ingame_info").setLabel("Bilgi").setStyle(ButtonStyle.Primary).setDisabled(false),
+    new ButtonBuilder().setCustomId("ingame_cancel").setLabel("İPTAL ET").setStyle(ButtonStyle.Secondary).setEmoji("🛑").setDisabled(!!closed)
+  );
+}
+
+function ingameInfoEmbed(guild, data) {
+  const saati = data.toplanmaSaati || "Belirtilmedi";
+  const claim = data.claimKodu || "Belirtilmedi";
+
+  return createEmbed(guild, {
+    title: "Etkinlik Bilgileri",
+    description:
+      `⏰ **Toplanma Saati:** \`${saati}\`\n` +
+      `✨ **Claim Kodu:** \`${claim}\`\n\n` +
+      `❗ *Belirtilen Saat'de Hood'da Olmayanların Yerine Yedeklerden alınacaktır erkenden gelmeye özen gösterelim!*`
+  });
+}
+
+async function refreshIngameMessage(guild, msgId) {
+  const data = ingameList.get(msgId);
+  if (!data) return;
+  const channel = guild.channels.cache.get(data.channelId);
+  if (!channel) return;
+  const msg = await channel.messages.fetch(msgId).catch(() => null);
+  if (!msg) return;
+  await msg.edit({
+    embeds: [ingameEmbed(guild, data)],
+    components: [ingameRows(data.closed || data.cancelled)]
+  }).catch(() => {});
+}
+
+async function closeIngame(guild, msgId) {
+  const data = ingameList.get(msgId);
+  if (!data || data.closed) return;
+  data.closed = true;
+  if (data.timer) { clearTimeout(data.timer); data.timer = null; }
+  await refreshIngameMessage(guild, msgId);
+}
+
+// ===================== AKTİF EKİPLER PARSER =====================
 function parseEkipFromNickname(nickname) {
   if (!nickname) return null;
   const match = nickname.match(/^(.*?)\s+x\s+.+$/i);
@@ -1704,14 +1809,13 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName("ingame")
-    .setDescription(toSmallCaps("ingame kadro paneli"))
-    .addSubcommand((s) => s
-      .setName("olustur")
-      .setDescription(toSmallCaps("yeni kadro paneli açar"))
-      .addStringOption((o) => o.setName("baslik").setDescription("Panel başlığı").setRequired(true))
-      .addIntegerOption((o) => o.setName("limit").setDescription("Maksimum kişi limiti").setRequired(true).setMinValue(1))
-      .addStringOption((o) => o.setName("sure").setDescription("Panel geçerlilik süresi")))
-    .addSubcommand((s) => s.setName("iptal").setDescription(toSmallCaps("kadro panelini iptal eder"))),
+    .setDescription(toSmallCaps("ingame kadro paneli oluşturur"))
+    .addStringOption((o) => o.setName("etkinlik").setDescription("Etkinlik başlığı").setRequired(true))
+    .addIntegerOption((o) => o.setName("sayi").setDescription("Asıl kadro kişi sayısı").setRequired(true).setMinValue(1))
+    .addIntegerOption((o) => o.setName("yedek").setDescription("Yedek kişi sayısı").setRequired(false).setMinValue(0))
+    .addStringOption((o) => o.setName("toplanma-saati").setDescription("Toplanma saati (Örn: 21.00)").setRequired(false))
+    .addStringOption((o) => o.setName("claim-kodu").setDescription("Claim kodu (Örn: x)").setRequired(false))
+    .addStringOption((o) => o.setName("sure").setDescription("Etkinlik süresi (Örn: 30dk, 2sa, 30s)").setRequired(false)),
 
   new SlashCommandBuilder()
     .setName("yetkili")
@@ -1848,6 +1952,87 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (interaction.customId === "aktiflik_cancel") return handleAktiflikCancel(interaction);
       if (interaction.customId.startsWith("aktiflik_kick_")) return handleAktiflikKick(interaction);
       if (interaction.customId.startsWith("aktiflik_stats_")) return handleAktiflikStats(interaction);
+
+      // ---- INGAME BUTTONS ----
+      if (interaction.customId === "ingame_join") {
+        const msgId = interaction.message.id;
+        const data = ingameList.get(msgId);
+        if (!data) return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "etkinlik bulunamadı") }), true);
+        if (data.closed || data.cancelled) return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "etkinlik sona erdi") }), true);
+
+        if (data.mainUsers.includes(interaction.user.id) || data.backupUsers.includes(interaction.user.id)) {
+          return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "zaten katıldınız") }), true);
+        }
+
+        const totalCurrent = data.mainUsers.length + data.backupUsers.length;
+        if (totalCurrent >= data.totalLimit) {
+          return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "kadro ve yedekler tamamen doldu") }), true);
+        }
+
+        if (data.mainUsers.length < data.mainLimit) {
+          data.mainUsers.push(interaction.user.id);
+        } else {
+          data.backupUsers.push(interaction.user.id);
+        }
+
+        const stats = ensureActivity(interaction.user.id);
+        stats.ingameCount = (stats.ingameCount || 0) + 1;
+        stats.events.push({ name: data.title, date: new Date().toLocaleDateString("tr-TR") });
+        saveJSON(ACTIVITY_FILE, activityStore, "activity.json");
+
+        await refreshIngameMessage(interaction.guild, msgId);
+        return replyE(interaction, ingameInfoEmbed(interaction.guild, data), true);
+      }
+
+      if (interaction.customId === "ingame_leave") {
+        const msgId = interaction.message.id;
+        const data = ingameList.get(msgId);
+        if (!data) return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "etkinlik bulunamadı") }), true);
+        if (data.closed || data.cancelled) return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "etkinlik sona erdi") }), true);
+
+        const inMain = data.mainUsers.indexOf(interaction.user.id);
+        const inBackup = data.backupUsers.indexOf(interaction.user.id);
+
+        if (inMain === -1 && inBackup === -1) {
+          return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "listede bulunmuyorsunuz") }), true);
+        }
+
+        if (inMain !== -1) {
+          data.mainUsers.splice(inMain, 1);
+          if (data.backupUsers.length > 0) {
+            const promoted = data.backupUsers.shift();
+            data.mainUsers.push(promoted);
+          }
+        } else if (inBackup !== -1) {
+          data.backupUsers.splice(inBackup, 1);
+        }
+
+        await refreshIngameMessage(interaction.guild, msgId);
+        return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarili, "etkinlikten ayrıldınız") }), true);
+      }
+
+      if (interaction.customId === "ingame_info") {
+        const msgId = interaction.message.id;
+        const data = ingameList.get(msgId);
+        if (!data) return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "etkinlik bulunamadı") }), true);
+        return replyE(interaction, ingameInfoEmbed(interaction.guild, data), true);
+      }
+
+      if (interaction.customId === "ingame_cancel") {
+        const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
+        if (!isStaff(interaction) && !isAdmin) return noPerm(interaction);
+
+        const msgId = interaction.message.id;
+        const data = ingameList.get(msgId);
+        if (!data) return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarisiz, "etkinlik bulunamadı") }), true);
+
+        data.cancelled = true;
+        data.closed = true;
+        if (data.timer) { clearTimeout(data.timer); data.timer = null; }
+
+        await refreshIngameMessage(interaction.guild, msgId);
+        return replyE(interaction, createEmbed(interaction.guild, { title: line(EMOJI.basarili, "etkinlik iptal edildi") }), true);
+      }
 
       if (interaction.customId === "banaffi_open") {
         const modal = new ModalBuilder()
@@ -2352,25 +2537,49 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
+    // ---- /ingame (BİREBİR YENİ ETKİNLİK SİSTEMİ) ----
     if (commandName === "ingame") {
-      const sub = interaction.options.getSubcommand();
-      if (!isOwner(interaction.user.id) && !isStaff(interaction)) return noPerm(interaction);
-      if (sub === "olustur") {
-        const title = interaction.options.getString("baslik");
-        const limit = interaction.options.getInteger("limit");
-        const sureText = interaction.options.getString("sure");
-        const durationMs = parseDurationToMs(sureText);
-        const data = { title, limit, users: [], endsAt: durationMs ? Date.now() + durationMs : null, closed: false, channelId: interaction.channel.id, ownerId: interaction.user.id };
-        const msg = await interaction.channel.send({
-          embeds: [createEmbed(guild, { title: line(EMOJI.moryildiz, title), description: `\`[ MAIN KADRO: 0 / ${limit} ]\`` })],
-          components: [new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId("ingame_join").setLabel(toSmallCaps("katıl")).setStyle(ButtonStyle.Success).setEmoji(EMOJI.basarili),
-            new ButtonBuilder().setCustomId("ingame_leave").setLabel(toSmallCaps("ayrıl")).setStyle(ButtonStyle.Danger).setEmoji(EMOJI.basarisiz)
-          )]
-        });
-        ingameList.set(msg.id, data);
-        return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarili, "kadro paneli oluşturuldu") }), true);
+      const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
+      if (!isOwner(interaction.user.id) && !isStaff(interaction) && !isAdmin) return noPerm(interaction);
+
+      const title = interaction.options.getString("etkinlik");
+      const mainLimit = interaction.options.getInteger("sayi");
+      const backupLimit = interaction.options.getInteger("yedek") || 0;
+      const toplanmaSaati = interaction.options.getString("toplanma-saati") || "Belirtilmedi";
+      const claimKodu = interaction.options.getString("claim-kodu") || "Yok";
+      const sureText = interaction.options.getString("sure");
+      const durationMs = parseDurationToMs(sureText);
+
+      const data = {
+        title,
+        mainLimit,
+        backupLimit,
+        totalLimit: mainLimit + backupLimit,
+        toplanmaSaati,
+        claimKodu,
+        durationMs,
+        endsAt: durationMs ? Date.now() + durationMs : null,
+        mainUsers: [],
+        backupUsers: [],
+        closed: false,
+        cancelled: false,
+        channelId: interaction.channel.id,
+        guildId: guild.id,
+        ownerId: interaction.user.id,
+        timer: null
+      };
+
+      const msg = await interaction.channel.send({
+        embeds: [ingameEmbed(guild, data)],
+        components: [ingameRows(false)]
+      });
+
+      if (durationMs) {
+        data.timer = setTimeout(() => closeIngame(guild, msg.id), durationMs);
       }
+
+      ingameList.set(msg.id, data);
+      return replyE(interaction, createEmbed(guild, { title: line(EMOJI.basarili, "kadro paneli oluşturuldu") }), true);
     }
   } catch (e) {
     console.error("Interaction Hata:", e);
