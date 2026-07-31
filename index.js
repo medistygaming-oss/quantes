@@ -1594,7 +1594,7 @@ function ingameEmbed(guild, data) {
   } else if (isFull) {
     statusText = `\`\`\`diff\n+ [ HEDEFE ULAŞILDI (${mainCount}/${data.mainLimit}) ] +\n\`\`\``;
   } else {
-    statusText = `\`\`\`diff\n+ [ KADRO TOPLANIYOR (${mainCount}/${data.mainLimit}) ] +\n\`\`\``;
+    statusText = `\`\`\`diff\n+ [ KADRO (${mainCount}/${data.mainLimit}) ] +\n\`\`\``;
   }
 
   let remainingText = "Süre Doldu / Bitti";
